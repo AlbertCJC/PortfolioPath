@@ -14,6 +14,7 @@ interface GitHubFile {
   type: 'file' | 'dir';
   download_url: string | null;
   html_url: string;
+  url: string;
 }
 
 export default function CodeUploader({ onAnalyze, isAnalyzing }: CodeUploaderProps) {
@@ -83,24 +84,40 @@ export default function CodeUploader({ onAnalyze, isAnalyzing }: CodeUploaderPro
     }
   };
 
-  const fetchGithubContents = async (url: string) => {
-    setIsLoadingGithub(true);
-    setGithubError(null);
-    try {
-      const res = await fetch(`/api/github/contents?url=${encodeURIComponent(url)}`);
-      if (!res.ok) throw new Error('Failed to fetch repository contents');
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setGithubFiles(data.sort((a, b) => (a.type === b.type ? 0 : a.type === 'dir' ? -1 : 1)));
-      } else {
-        throw new Error('Invalid repository URL or empty');
-      }
-    } catch (err: any) {
-      setGithubError(err.message);
-    } finally {
-      setIsLoadingGithub(false);
+  const fetchGithubContents = async (repoUrl: string) => {
+  setIsLoadingGithub(true);
+  setGithubError(null);
+
+  try {
+    // Extract owner + repo from URL
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!match) throw new Error("Invalid GitHub repo URL");
+
+    const owner = match[1];
+    const repo = match[2].replace(".git", "");
+
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
+
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error("Failed to fetch repository contents");
+
+    const data = await res.json();
+
+    if (Array.isArray(data)) {
+      setGithubFiles(
+        data.sort((a, b) =>
+          a.type === b.type ? 0 : a.type === "dir" ? -1 : 1
+        )
+      );
+    } else {
+      throw new Error("Empty repository or invalid structure");
     }
-  };
+  } catch (err: any) {
+    setGithubError(err.message);
+  } finally {
+    setIsLoadingGithub(false);
+  }
+};
 
   const handleGithubFileClick = async (file: GitHubFile) => {
     if (file.type === 'dir') {
