@@ -97,15 +97,28 @@ function App() {
         navigate('/dashboard');
       }
     };
+    
+    const handleStorage = async (event: StorageEvent) => {
+      if (event.key === 'oauth_success') {
+        await fetchUserData();
+        navigate('/dashboard');
+      }
+    };
+
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    window.addEventListener('storage', handleStorage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (user && location.pathname === '/') {
       navigate('/dashboard');
     }
-  }, [user, location, navigate]);
+  }, [user, location.pathname, navigate]);
 
   const handleLogin = async () => {
     try {

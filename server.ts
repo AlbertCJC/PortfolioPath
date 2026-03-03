@@ -22,6 +22,9 @@ const userSchema = new mongoose.Schema<IUser>({
 });
 const User = mongoose.model<IUser>('User', userSchema);
 
+let isDbConnected = false;
+const inMemoryUsers = new Map<string, any>();
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -35,11 +38,13 @@ async function startServer() {
     try {
       await mongoose.connect(process.env.MONGODB_URI);
       console.log("Connected to MongoDB");
+      isDbConnected = true;
     } catch (err) {
       console.error("MongoDB connection error:", err);
+      console.warn("Falling back to in-memory storage.");
     }
   } else {
-    console.warn("MONGODB_URI not set. Database features will not work.");
+    console.warn("MONGODB_URI not set. Using in-memory storage.");
   }
 
   // GitHub OAuth Routes
@@ -92,11 +97,23 @@ async function startServer() {
         <html>
           <body>
             <script>
+              // Try to use localStorage as a fallback for cross-window communication
+              try {
+                localStorage.setItem('oauth_success', Date.now().toString());
+              } catch (e) {
+                console.error('localStorage error:', e);
+              }
+              
               if (window.opener) {
                 window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
                 window.close();
               } else {
-                window.location.href = '/';
+                // If opener is lost, try to close anyway, or redirect
+                window.close();
+                // Fallback if close fails (e.g., not opened by script)
+                setTimeout(() => {
+                  window.location.href = '/dashboard';
+                }, 1000);
               }
             </script>
             <p>Authentication successful. This window should close automatically.</p>
@@ -182,9 +199,18 @@ async function startServer() {
       const userData = await userRes.json();
       const githubId = userData.id.toString();
 
-      let user = await User.findOne({ githubId });
-      if (!user) {
-        user = await User.create({ githubId });
+      let user;
+      if (isDbConnected) {
+        user = await User.findOne({ githubId });
+        if (!user) {
+          user = await User.create({ githubId });
+        }
+      } else {
+        user = inMemoryUsers.get(githubId);
+        if (!user) {
+          user = { githubId, growthData: {}, radarData: {} };
+          inMemoryUsers.set(githubId, user);
+        }
       }
 
       res.json({
@@ -222,11 +248,22 @@ async function startServer() {
       if (growthData !== undefined) updateData.growthData = growthData;
       if (radarData !== undefined) updateData.radarData = radarData;
 
-      const user = await User.findOneAndUpdate(
-        { githubId },
-        { $set: updateData },
-        { new: true, upsert: true }
-      );
+      let user;
+      if (isDbConnected) {
+        user = await User.findOneAndUpdate(
+          { githubId },
+          { $set: updateData },
+          { new: true, upsert: true }
+        );
+      } else {
+        user = inMemoryUsers.get(githubId);
+        if (!user) {
+          user = { githubId, growthData: {}, radarData: {} };
+        }
+        if (growthData !== undefined) user.growthData = growthData;
+        if (radarData !== undefined) user.radarData = radarData;
+        inMemoryUsers.set(githubId, user);
+      }
 
       res.json({ success: true, data: user });
     } catch (error) {

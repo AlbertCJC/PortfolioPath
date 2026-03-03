@@ -127,9 +127,10 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       tooltip.html(`
         <div class="font-bold text-blue-600 mb-1 text-base border-b border-blue-100 pb-1">${d.id}</div>
         <div class="text-slate-600 mt-2">${d.description}</div>
-      `)
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY - 15) + "px");
+      `);
+      
+      const [x, y] = d3.pointer(event, containerRef.current);
+      tooltip.style("left", (x + 15) + "px").style("top", (y - 15) + "px");
       
       d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", true);
     })
@@ -145,23 +146,22 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       const containerEl = containerRef.current;
       
       if (tooltipEl && containerEl) {
-        let left = event.pageX + 15;
-        let top = event.pageY - 15;
+        const [x, y] = d3.pointer(event, containerEl);
+        let left = x + 15;
+        let top = y - 15;
         
         const tooltipRect = tooltipEl.getBoundingClientRect();
         const containerRect = containerEl.getBoundingClientRect();
         
-        if (left + tooltipRect.width > containerRect.right) {
-          left = event.pageX - tooltipRect.width - 15;
+        if (left + tooltipRect.width > containerRect.width) {
+          left = x - tooltipRect.width - 15;
         }
         
-        if (top + tooltipRect.height > containerRect.bottom) {
-          top = event.pageY - tooltipRect.height - 15;
+        if (top + tooltipRect.height > containerRect.height) {
+          top = y - tooltipRect.height - 15;
         }
         
         tooltip.style("left", left + "px").style("top", top + "px");
-      } else {
-        tooltip.style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 15) + "px");
       }
     });
 
