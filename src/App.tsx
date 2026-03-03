@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, Code, Target, GraduationCap, Briefcase, TrendingUp, 
@@ -35,6 +35,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [reportData, setReportData] = useState<AnalysisResult | null>(null);
@@ -97,6 +98,12 @@ function App() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  useEffect(() => {
+    if (user && location.pathname === '/') {
+      navigate('/dashboard');
+    }
+  }, [user, location, navigate]);
 
   const handleLogin = async () => {
     try {
@@ -775,21 +782,13 @@ function App() {
         </p>
 
         <div className="w-full max-w-2xl flex flex-col items-center gap-6">
-          {!user ? (
+          {!user && (
             <button
               onClick={handleLogin}
               className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-3 text-lg shadow-lg"
             >
               <Github className="w-6 h-6" />
               Login with GitHub
-            </button>
-          ) : (
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-3 text-lg shadow-lg"
-            >
-              <LayoutDashboard className="w-6 h-6" />
-              Go to Dashboard
             </button>
           )}
 
