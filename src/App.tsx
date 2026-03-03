@@ -6,7 +6,7 @@ import {
   Github, Sparkles, Zap, CheckCircle2, Award, Cpu, Terminal, Database,
   ArrowRight, Upload, AlertTriangle, ShieldAlert, Lightbulb, Star, LogOut
 } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import LoadingSpinner from './components/LoadingSpinner';
 import { analyzeCode, AnalysisResult } from './services/gemini';
 import { fetchGithubRepo } from './services/github';
@@ -151,7 +151,16 @@ function App() {
           source: source
         };
         const newGrowthData = [...growthData, newGrowthEntry];
-        const newRadarData = result.skill_radar;
+        
+        // Average the new skill radar with the existing one, or just use the new one if none exists
+        const newRadarData = radarData ? {
+          frontend: Math.round((radarData.frontend + result.skill_radar.frontend) / 2),
+          backend: Math.round((radarData.backend + result.skill_radar.backend) / 2),
+          devops: Math.round((radarData.devops + result.skill_radar.devops) / 2),
+          security: Math.round((radarData.security + result.skill_radar.security) / 2),
+          design: Math.round((radarData.design + result.skill_radar.design) / 2),
+          architecture: Math.round((radarData.architecture + result.skill_radar.architecture) / 2),
+        } : result.skill_radar;
         
         setGrowthData(newGrowthData);
         setRadarData(newRadarData);
@@ -654,23 +663,48 @@ function App() {
             </div>
             
             {growthData && growthData.length > 0 ? (
-              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
-                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-emerald-400" />
-                  Code Quality History
-                </h3>
-                <div className="space-y-4">
-                  {growthData.slice().reverse().map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                      <div>
-                        <p className="font-medium text-white">{entry.source}</p>
-                        <p className="text-sm text-slate-400">{new Date(entry.date).toLocaleDateString()}</p>
+              <div className="space-y-8">
+                {/* Chart Section */}
+                <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    Score Progression
+                  </h3>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={growthData.map(d => ({ ...d, displayDate: new Date(d.date).toLocaleDateString() }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey="displayDate" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                        <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                        <Tooltip 
+                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                          itemStyle={{ color: '#10b981' }}
+                        />
+                        <Line type="monotone" dataKey="score" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2 }} activeDot={{ r: 8 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* History List */}
+                <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
+                  <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
+                    Analysis History
+                  </h3>
+                  <div className="space-y-4">
+                    {growthData.slice().reverse().map((entry: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                        <div>
+                          <p className="font-medium text-white">{entry.source}</p>
+                          <p className="text-sm text-slate-400">{new Date(entry.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className={cn("px-4 py-2 rounded-lg font-bold text-lg", getScoreBg(entry.score), getScoreColor(entry.score))}>
+                          {entry.score}/100
+                        </div>
                       </div>
-                      <div className={cn("px-4 py-2 rounded-lg font-bold text-lg", getScoreBg(entry.score), getScoreColor(entry.score))}>
-                        {entry.score}/100
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
