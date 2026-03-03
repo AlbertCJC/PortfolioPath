@@ -40,6 +40,10 @@ export interface AnalysisResult {
       resources: string[];
     }[];
   };
+  architecture_graph: {
+    nodes: { id: string; group: number; description: string }[];
+    links: { source: string; target: string; label: string }[];
+  };
 }
 
 export async function analyzeCode(code: string): Promise<AnalysisResult> {
@@ -87,19 +91,16 @@ export async function analyzeCode(code: string): Promise<AnalysisResult> {
             "title": "Title of the first learning step",
             "description": "Detailed description of what to learn and why it's important.",
             "resources": ["Topic to search 1", "Topic to search 2"]
-          },
-          {
-            "step": 2,
-            "title": "Title of the second learning step",
-            "description": "Detailed description of what to learn and why it's important.",
-            "resources": ["Topic to search 1", "Topic to search 2"]
-          },
-          {
-            "step": 3,
-            "title": "Title of the third learning step",
-            "description": "Detailed description of what to learn and why it's important.",
-            "resources": ["Topic to search 1", "Topic to search 2"]
           }
+        ]
+      },
+      "architecture_graph": {
+        "nodes": [
+          { "id": "Component Name 1", "group": 1, "description": "What this component does" },
+          { "id": "Component Name 2", "group": 2, "description": "What this component does" }
+        ],
+        "links": [
+          { "source": "Component Name 1", "target": "Component Name 2", "label": "calls/uses/depends on" }
         ]
       }
     }

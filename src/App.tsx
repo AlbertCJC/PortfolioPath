@@ -10,9 +10,10 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import LoadingSpinner from './components/LoadingSpinner';
 import { analyzeCode, AnalysisResult } from './services/gemini';
 import { fetchGithubRepo } from './services/github';
+import ArchitectureGraph from './components/ArchitectureGraph';
 import { cn } from './lib/utils';
 
-type Tab = 'dashboard' | 'analyzer' | 'radar' | 'learning' | 'career' | 'growth';
+type Tab = 'dashboard' | 'analyzer' | 'radar' | 'learning' | 'career' | 'growth' | 'architecture';
 
 const formatText = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -27,6 +28,7 @@ const formatText = (text: string) => {
 const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analyzer', label: 'Code Analyzer', icon: Code },
+  { id: 'architecture', label: 'Architecture', icon: Cpu },
   { id: 'radar', label: 'Skill Radar', icon: Target },
   { id: 'learning', label: 'Learning Path', icon: GraduationCap },
   { id: 'career', label: 'Career Generator', icon: Briefcase },
@@ -658,6 +660,29 @@ function App() {
                   </button>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        );
+      case 'architecture':
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto w-full space-y-8 h-full flex flex-col">
+            <div className="mb-8 shrink-0">
+              <h1 className="text-3xl font-bold text-white tracking-tight">Architecture Graph</h1>
+              <p className="text-slate-400">Visual representation of your project's components and their relationships.</p>
+            </div>
+            
+            <div className="flex-1 min-h-[600px] w-full">
+              {reportData.architecture_graph ? (
+                <ArchitectureGraph data={reportData.architecture_graph} />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full p-16 border border-dashed border-slate-700 rounded-2xl bg-slate-900/30 text-center">
+                  <Cpu className="w-16 h-16 text-slate-600 mb-4" />
+                  <h3 className="text-xl font-bold text-white mb-2">No Architecture Data</h3>
+                  <p className="text-slate-400 max-w-md">
+                    The analysis did not generate an architecture graph for this project. Try analyzing a different repository.
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         );
