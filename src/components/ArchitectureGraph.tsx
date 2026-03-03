@@ -54,13 +54,11 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
     const nodes: Node[] = data.nodes.map(d => ({ ...d }));
     const links: Link[] = data.links.map(d => ({ ...d }));
 
-    const color = d3.scaleOrdinal(d3.schemeCategory10);
-
     const simulation = d3.forceSimulation<Node>(nodes)
-      .force("link", d3.forceLink<Node, Link>(links).id(d => d.id).distance(150))
-      .force("charge", d3.forceManyBody().strength(-400))
+      .force("link", d3.forceLink<Node, Link>(links).id(d => d.id).distance(200))
+      .force("charge", d3.forceManyBody().strength(-800))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(50));
+      .force("collide", d3.forceCollide().radius(80));
 
     // Define arrow markers for links
     svg.append("defs").selectAll("marker")
@@ -68,21 +66,22 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .join("marker")
       .attr("id", String)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 25)
+      .attr("refX", 75) // Adjusted for wider nodes
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
       .attr("orient", "auto")
       .append("path")
-      .attr("fill", "#94a3b8")
+      .attr("fill", "#3b82f6") // Blue color matching the image
       .attr("d", "M0,-5L10,0L0,5");
 
     const link = g.append("g")
-      .attr("stroke", "#475569")
+      .attr("stroke", "#3b82f6") // Blue color matching the image
       .attr("stroke-opacity", 0.6)
-      .selectAll("line")
+      .selectAll("path")
       .data(links)
-      .join("line")
+      .join("path")
+      .attr("fill", "none")
       .attr("stroke-width", 2)
       .attr("marker-end", "url(#end)");
 
@@ -91,74 +90,98 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .data(links)
       .join("text")
       .attr("font-size", "10px")
-      .attr("fill", "#94a3b8")
+      .attr("fill", "#64748b")
       .attr("text-anchor", "middle")
       .attr("dy", -5)
       .text(d => d.label);
 
     const node = g.append("g")
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 1.5)
-      .selectAll("circle")
+      .selectAll("g")
       .data(nodes)
-      .join("circle")
-      .attr("r", 20)
-      .attr("fill", d => color(d.group.toString()))
+      .join("g")
       .call(drag(simulation) as any);
 
-    const nodeLabels = g.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .attr("font-size", "12px")
-      .attr("fill", "#f8fafc")
-      .attr("text-anchor", "middle")
-      .attr("dy", 35)
-      .text(d => d.id);
+    // Add foreignObject for HTML content (rectangular cards)
+    const nodeWidth = 140;
+    const nodeHeight = 60;
+
+    node.append("foreignObject")
+      .attr("width", nodeWidth)
+      .attr("height", nodeHeight)
+      .attr("x", -nodeWidth / 2)
+      .attr("y", -nodeHeight / 2)
+      .append("xhtml:div")
+      .attr("class", "w-full h-full flex flex-col items-center justify-center bg-white border-2 border-blue-400 rounded-xl shadow-sm p-2 cursor-pointer transition-colors hover:bg-blue-50")
+      .html(d => `
+        <div class="text-xs font-semibold text-slate-700 text-center break-words w-full line-clamp-2">${d.id}</div>
+      `);
 
     // Tooltip
     const tooltip = d3.select(containerRef.current)
       .append("div")
-      .attr("class", "absolute hidden bg-slate-800 text-slate-200 p-3 rounded-lg border border-slate-700 shadow-xl text-sm max-w-xs pointer-events-none z-50")
+      .attr("class", "absolute hidden bg-white text-slate-800 p-4 rounded-xl border border-blue-200 shadow-xl text-sm max-w-sm pointer-events-none z-50")
       .style("opacity", 0);
 
     node.on("mouseover", (event, d) => {
       tooltip.transition().duration(200).style("opacity", 1).style("display", "block");
-      tooltip.html(`<strong>${d.id}</strong><br/>${d.description}`)
-        .style("left", (event.pageX + 10) + "px")
-        .style("top", (event.pageY - 28) + "px");
+      tooltip.html(`
+        <div class="font-bold text-blue-600 mb-1 text-base border-b border-blue-100 pb-1">${d.id}</div>
+        <div class="text-slate-600 mt-2">${d.description}</div>
+      `)
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY - 15) + "px");
       
-      d3.select(event.currentTarget).attr("stroke", "#10b981").attr("stroke-width", 3);
+      d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", true);
     })
     .on("mouseout", (event) => {
       tooltip.transition().duration(500).style("opacity", 0).on("end", function() {
         d3.select(this).style("display", "none");
       });
-      d3.select(event.currentTarget).attr("stroke", "#fff").attr("stroke-width", 1.5);
+      d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", false);
     })
     .on("mousemove", (event) => {
-      tooltip.style("left", (event.pageX + 10) + "px")
-             .style("top", (event.pageY - 28) + "px");
+      // Adjust tooltip position to stay within bounds if possible
+      const tooltipEl = tooltip.node() as HTMLElement;
+      const containerEl = containerRef.current;
+      
+      if (tooltipEl && containerEl) {
+        let left = event.pageX + 15;
+        let top = event.pageY - 15;
+        
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+        const containerRect = containerEl.getBoundingClientRect();
+        
+        if (left + tooltipRect.width > containerRect.right) {
+          left = event.pageX - tooltipRect.width - 15;
+        }
+        
+        if (top + tooltipRect.height > containerRect.bottom) {
+          top = event.pageY - tooltipRect.height - 15;
+        }
+        
+        tooltip.style("left", left + "px").style("top", top + "px");
+      } else {
+        tooltip.style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 15) + "px");
+      }
     });
 
     simulation.on("tick", () => {
-      link
-        .attr("x1", d => (d.source as Node).x!)
-        .attr("y1", d => (d.source as Node).y!)
-        .attr("x2", d => (d.target as Node).x!)
-        .attr("y2", d => (d.target as Node).y!);
+      // Use orthogonal-like paths for links
+      link.attr("d", (d: any) => {
+        const sourceX = d.source.x;
+        const sourceY = d.source.y;
+        const targetX = d.target.x;
+        const targetY = d.target.y;
+        
+        // Simple straight line for now, orthogonal is complex with force layout
+        return `M${sourceX},${sourceY} L${targetX},${targetY}`;
+      });
 
       linkLabels
         .attr("x", d => ((d.source as Node).x! + (d.target as Node).x!) / 2)
         .attr("y", d => ((d.source as Node).y! + (d.target as Node).y!) / 2);
 
-      node
-        .attr("cx", d => d.x!)
-        .attr("cy", d => d.y!);
-
-      nodeLabels
-        .attr("x", d => d.x!)
-        .attr("y", d => d.y!);
+      node.attr("transform", d => `translate(${d.x},${d.y})`);
     });
 
     function drag(simulation: d3.Simulation<Node, undefined>) {
@@ -192,10 +215,10 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-[#131825] rounded-2xl border border-slate-800/50">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-slate-50 rounded-2xl border border-slate-200">
       <svg ref={svgRef} className="w-full h-full cursor-move" />
-      <div className="absolute bottom-4 left-4 text-xs text-slate-500 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800">
-        Scroll to zoom, drag to pan and move nodes
+      <div className="absolute bottom-4 left-4 text-xs text-slate-500 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+        Scroll to zoom, drag to pan and move nodes. Hover for details.
       </div>
     </div>
   );

@@ -671,7 +671,7 @@ function App() {
               <p className="text-slate-400">Visual representation of your project's components and their relationships.</p>
             </div>
             
-            <div className="flex-1 min-h-[600px] w-full">
+            <div className="flex-1 min-h-[800px] w-full">
               {reportData.architecture_graph ? (
                 <ArchitectureGraph data={reportData.architecture_graph} />
               ) : (
