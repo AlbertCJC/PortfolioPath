@@ -56,6 +56,11 @@ async function startServer() {
     console.warn("MONGODB_URI not set. Using in-memory storage.");
   }
 
+  // DB Status Route
+  app.get("/api/db-status", (req, res) => {
+    res.json({ connected: isDbConnected });
+  });
+
   // GitHub OAuth Routes
   app.get("/api/auth/url", (req, res) => {
     const redirectUri = `${req.protocol}://${req.get("host")}/auth/callback`;
