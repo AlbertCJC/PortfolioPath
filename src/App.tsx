@@ -792,50 +792,9 @@ function App() {
             </button>
           )}
 
-          <div className="flex items-center gap-4 w-full my-4">
-            <div className="h-px bg-slate-800 flex-1"></div>
-            <span className="text-sm text-slate-500 font-medium">OR</span>
-            <div className="h-px bg-slate-800 flex-1"></div>
-          </div>
+          {/* OR divider removed */}
 
-          <div className="flex flex-col sm:flex-row w-full gap-3">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Github className="w-5 h-5 text-slate-500" />
-              </div>
-              <input
-                type="text"
-                value={repoUrl}
-                onChange={(e) => setRepoUrl(e.target.value)}
-                placeholder="Enter GitHub Repo URL manually..."
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors text-base"
-              />
-            </div>
-            <button
-              onClick={() => handleGithubAudit(repoUrl)}
-              disabled={isAnalyzing || !repoUrl}
-              className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base whitespace-nowrap"
-            >
-              {isAnalyzing ? 'Scanning...' : 'Start Audit'}
-              {!isAnalyzing && <ArrowRight className="w-5 h-5" />}
-            </button>
-          </div>
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept=".js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.html,.css,.json,.rb,.go,.rs,.php"
-          />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isAnalyzing}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-300 transition-colors disabled:opacity-50"
-          >
-            <Upload className="w-4 h-4" />
-            <span className="text-sm">Or upload your project files directly</span>
-          </button>
+{/* Inputs removed as per request */}
 
           {error && (
             <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm w-full">
@@ -914,16 +873,7 @@ function App() {
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-[120px]" />
         </div>
 
-        {/* Analyze New Code Button */}
-        <div className="absolute top-6 right-8 z-50">
-          <button 
-            onClick={() => navigate('/')}
-            className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            <Code className="w-4 h-4" />
-            Analyze New Code
-          </button>
-        </div>
+        {/* Analyze New Code Button removed */}
 
         <div className="relative z-10 p-8 md:p-12 min-h-full flex flex-col pt-20">
           <AnimatePresence mode="wait">
