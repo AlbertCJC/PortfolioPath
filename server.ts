@@ -9,12 +9,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // MongoDB Schema
-const userSchema = new mongoose.Schema({
+interface IUser {
+  githubId: string;
+  growthData: any;
+  radarData: any;
+}
+
+const userSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
   growthData: { type: mongoose.Schema.Types.Mixed, default: {} },
   radarData: { type: mongoose.Schema.Types.Mixed, default: {} },
 });
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model<IUser>('User', userSchema);
 
 async function startServer() {
   const app = express();

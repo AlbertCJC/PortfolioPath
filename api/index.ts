@@ -9,14 +9,20 @@ app.use(express.json());
 app.use(cookieParser());
 
 // MongoDB Schema
-const userSchema = new mongoose.Schema({
+interface IUser {
+  githubId: string;
+  growthData: any;
+  radarData: any;
+}
+
+const userSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
   growthData: { type: mongoose.Schema.Types.Mixed, default: {} },
   radarData: { type: mongoose.Schema.Types.Mixed, default: {} },
 });
 
 // Prevent overwriting model if already compiled
-const User = mongoose.models.User || mongoose.model('User', userSchema);
+const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);
 
 // Connect to MongoDB
 if (process.env.MONGODB_URI) {
