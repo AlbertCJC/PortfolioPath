@@ -41,7 +41,7 @@ export default function LoadingSpinner() {
           animate={{ opacity: [1, 0.5, 1] }}
           transition={{ duration: 1.5, repeat: Infinity }}
         >
-          ANALYZING CODE ARCHITECTURE
+          ANALYZING PROJECT ARCHITECTURE
         </motion.h3>
         <p className="text-slate-400 text-sm font-mono">
           Evaluating complexity metrics...
