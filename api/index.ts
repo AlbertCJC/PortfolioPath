@@ -24,16 +24,33 @@ const userSchema = new mongoose.Schema<IUser>({
 // Prevent overwriting model if already compiled
 const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);
 
+let isDbConnected = false;
+
 // Connect to MongoDB
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI).then(() => {
-    console.log("Connected to MongoDB");
+  mongoose.connect(process.env.MONGODB_URI, {
+    serverApi: {
+      version: '1',
+      strict: true,
+      deprecationErrors: true,
+    }
+  }).then(async () => {
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.admin().command({ ping: 1 });
+    }
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    isDbConnected = true;
   }).catch((err) => {
     console.error("MongoDB connection error:", err);
   });
 } else {
   console.warn("MONGODB_URI not set. Database features will not work.");
 }
+
+// DB Status Route
+app.get("/api/db-status", (req, res) => {
+  res.json({ connected: isDbConnected });
+});
 
 // GitHub OAuth Routes
 app.get("/api/auth/url", (req, res) => {
@@ -111,6 +128,8 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ success: true });
 });
 
+const inMemoryUsers = new Map<string, any>();
+
 // User Data Routes
 app.get("/api/user/data", async (req, res) => {
   const token = req.cookies.github_token;
@@ -131,9 +150,18 @@ app.get("/api/user/data", async (req, res) => {
     const userData = await userRes.json();
     const githubId = userData.id.toString();
 
-    let user = await User.findOne({ githubId });
-    if (!user) {
-      user = await User.create({ githubId });
+    let user;
+    if (isDbConnected) {
+      user = await User.findOne({ githubId });
+      if (!user) {
+        user = await User.create({ githubId });
+      }
+    } else {
+      user = inMemoryUsers.get(githubId);
+      if (!user) {
+        user = { githubId, growthData: {}, radarData: {} };
+        inMemoryUsers.set(githubId, user);
+      }
     }
 
     res.json({
@@ -171,11 +199,22 @@ app.post("/api/user/data", async (req, res) => {
     if (growthData !== undefined) updateData.growthData = growthData;
     if (radarData !== undefined) updateData.radarData = radarData;
 
-    const user = await User.findOneAndUpdate(
-      { githubId },
-      { $set: updateData },
-      { new: true, upsert: true }
-    );
+    let user;
+    if (isDbConnected) {
+      user = await User.findOneAndUpdate(
+        { githubId },
+        { $set: updateData },
+        { new: true, upsert: true }
+      );
+    } else {
+      user = inMemoryUsers.get(githubId);
+      if (!user) {
+        user = { githubId, growthData: {}, radarData: {} };
+      }
+      if (growthData !== undefined) user.growthData = growthData;
+      if (radarData !== undefined) user.radarData = radarData;
+      inMemoryUsers.set(githubId, user);
+    }
 
     res.json({ success: true, user });
   } catch (error) {

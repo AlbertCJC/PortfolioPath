@@ -25,38 +25,36 @@ const User = mongoose.model<IUser>('User', userSchema);
 let isDbConnected = false;
 const inMemoryUsers = new Map<string, any>();
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-  app.set('trust proxy', 1);
+const app = express();
+const PORT = 3000;
+app.set('trust proxy', 1);
 
-  app.use(express.json());
-  app.use(cookieParser());
+app.use(express.json());
+app.use(cookieParser());
 
-  // Connect to MongoDB
-  if (process.env.MONGODB_URI) {
-    try {
-      await mongoose.connect(process.env.MONGODB_URI, {
-        serverApi: {
-          version: '1',
-          strict: true,
-          deprecationErrors: true,
-        }
-      });
-      if (mongoose.connection.db) {
-        await mongoose.connection.db.admin().command({ ping: 1 });
-      }
-      console.log("Pinged your deployment. You successfully connected to MongoDB!");
-      isDbConnected = true;
-    } catch (err) {
-      console.error("MongoDB connection error:", err);
-      console.warn("Falling back to in-memory storage.");
+// Connect to MongoDB
+if (process.env.MONGODB_URI) {
+  mongoose.connect(process.env.MONGODB_URI, {
+    serverApi: {
+      version: '1',
+      strict: true,
+      deprecationErrors: true,
     }
-  } else {
-    console.warn("MONGODB_URI not set. Using in-memory storage.");
-  }
+  }).then(async () => {
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.admin().command({ ping: 1 });
+    }
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    isDbConnected = true;
+  }).catch((err) => {
+    console.error("MongoDB connection error:", err);
+    console.warn("Falling back to in-memory storage.");
+  });
+} else {
+  console.warn("MONGODB_URI not set. Using in-memory storage.");
+}
 
-  // DB Status Route
+// DB Status Route
   app.get("/api/db-status", (req, res) => {
     res.json({ connected: isDbConnected });
   });
@@ -362,20 +360,26 @@ async function startServer() {
     }
   });
 
-  // Vite middleware for development
+// Only start the server if we are NOT on Vercel
+if (!process.env.VERCEL) {
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
+    // Vite middleware for development
+    createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
+    }).then((vite) => {
+      app.use(vite.middlewares);
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+      });
     });
-    app.use(vite.middlewares);
   } else {
     app.use(express.static('dist'));
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
 }
 
-startServer();
+// Export the app for Vercel serverless functions
+export default app;
