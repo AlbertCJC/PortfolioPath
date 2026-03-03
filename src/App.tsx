@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, Code, Target, GraduationCap, Briefcase, TrendingUp, 
   Github, Sparkles, Zap, CheckCircle2, Award, Cpu, Terminal, Database,
-  ArrowRight, Upload, AlertTriangle, ShieldAlert, Lightbulb, Star
+  ArrowRight, Upload, AlertTriangle, ShieldAlert, Lightbulb, Star, LogOut
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -33,7 +34,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 function App() {
-  const [isHome, setIsHome] = useState(true);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [reportData, setReportData] = useState<AnalysisResult | null>(null);
@@ -120,7 +121,7 @@ function App() {
   const handleAnalyze = async (code: string) => {
     setIsAnalyzing(true);
     setError(null);
-    setIsHome(false); // Switch to dashboard view to show loading spinner
+    navigate('/dashboard'); // Switch to dashboard view to show loading spinner
     
     try {
       const result = await analyzeCode(code);
@@ -129,7 +130,7 @@ function App() {
     } catch (err) {
       console.error(err);
       setError("Failed to analyze code. Please try again.");
-      setIsHome(true); // Go back to home on error
+      navigate('/'); // Go back to home on error
     } finally {
       setIsAnalyzing(false);
     }
@@ -139,7 +140,7 @@ function App() {
     if (!url) return;
     setIsAnalyzing(true);
     setError(null);
-    setIsHome(false); // Switch to dashboard view to show loading spinner
+    navigate('/dashboard'); // Switch to dashboard view to show loading spinner
     
     try {
       const code = await fetchGithubRepo(url);
@@ -147,7 +148,7 @@ function App() {
     } catch (err: any) {
       setError(err.message || "Failed to fetch GitHub repository.");
       setIsAnalyzing(false);
-      setIsHome(true); // Go back to home on error
+      navigate('/'); // Go back to home on error
     }
   };
 
@@ -185,16 +186,16 @@ function App() {
       );
     }
 
-    if (!reportData) {
+    if (!reportData && activeTab !== 'dashboard') {
       return (
         <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
           <Code className="w-16 h-16 opacity-20" />
-          <p className="text-lg">No data available.</p>
+          <p className="text-lg">No data available. Please analyze a repository first.</p>
           <button 
-            onClick={() => setIsHome(true)}
+            onClick={() => setActiveTab('dashboard')}
             className="px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors"
           >
-            Go to Home Page
+            Go to Dashboard
           </button>
         </div>
       );
@@ -301,20 +302,7 @@ function App() {
       );
     }
 
-    if (!reportData) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-          <Code className="w-16 h-16 opacity-20" />
-          <p className="text-lg">No data available.</p>
-          <button 
-            onClick={() => setActiveTab('analyzer')}
-            className="px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors"
-          >
-            Go to Code Analyzer
-          </button>
-        </div>
-      );
-    }
+
 
     switch (activeTab) {
       case 'dashboard':
@@ -322,22 +310,79 @@ function App() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto w-full space-y-8">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-              <p className="text-slate-400">Overview of your latest code audit.</p>
+              <p className="text-slate-400">
+                {reportData ? "Overview of your latest code audit." : "Select a repository to analyze or view your stats."}
+              </p>
             </div>
-            <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                Key Strengths
-              </h3>
-              <ul className="space-y-3">
-                {reportData.code_review.positive_observations.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-slate-300">
-                    <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+
+            {user && (
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Github className="w-5 h-5 text-slate-400" />
+                    Your Repositories
+                  </h3>
+                </div>
+                {isLoadingRepos ? (
+                  <div className="flex justify-center py-12">
+                    <LoadingSpinner />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {repositories.map((repo) => (
+                      <button
+                        key={repo.id}
+                        onClick={() => handleGithubAudit(repo.html_url)}
+                        disabled={isAnalyzing}
+                        className="flex flex-col items-start p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed group"
+                      >
+                        <div className="flex items-center gap-2 mb-2 w-full">
+                          <Github className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                          <span className="font-bold text-slate-200 truncate">{repo.name}</span>
+                        </div>
+                        {repo.description && (
+                          <p className="text-sm text-slate-400 line-clamp-2 mb-3">{repo.description}</p>
+                        )}
+                        <div className="flex items-center gap-4 mt-auto text-xs text-slate-500">
+                          {repo.language && (
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                              {repo.language}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Star className="w-3 h-3" />
+                            {repo.stargazers_count}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                    {repositories.length === 0 && (
+                      <div className="col-span-full text-center py-8 text-slate-500">
+                        No repositories found.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {reportData && (
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  Key Strengths
+                </h3>
+                <ul className="space-y-3">
+                  {reportData.code_review.positive_observations.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3 text-slate-300">
+                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </motion.div>
         );
       case 'radar': {
@@ -583,188 +628,132 @@ function App() {
     }
   };
 
-  if (isHome) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0B] flex flex-col relative overflow-hidden selection:bg-emerald-500/30">
-        {/* Background Gradients */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-[120px]" />
-        </div>
-
-        {/* Header */}
-        <div className="relative z-10 border-b border-slate-800/50">
-          <header className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/10">
-                <LayoutDashboard className="w-5 h-5 text-emerald-400" />
-              </div>
-              <span className="font-bold text-xl tracking-tight text-white">
-                Portfolio<span className="text-emerald-400">Path</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-6">
-              <a 
-                href="https://github.com/AlbertCJC/PortfolioPath" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
-              >
-                <Github className="w-4 h-4" />
-                View Source
-              </a>
-              <div className="w-px h-4 bg-slate-800"></div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                AI Powered
-              </div>
-            </div>
-          </header>
-        </div>
-
-        {/* Hero Section */}
-        <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto w-full mt-[-8vh]">
-          <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6 leading-tight">
-            Turn Your Code Into<br />
-            <span className="text-emerald-400">
-              Career Gold
-            </span>
-          </h1>
-          
-          <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl leading-relaxed">
-            Upload your project code. Our AI auditor evaluates quality, performance, and generates resume-ready bullet points instantly.
-          </p>
-
-          <div className="w-full max-w-2xl flex flex-col items-center gap-6">
-            {!user ? (
-              <button
-                onClick={handleLogin}
-                className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-3 text-lg shadow-lg"
-              >
-                <Github className="w-6 h-6" />
-                Login with GitHub
-              </button>
-            ) : (
-              <div className="w-full text-left">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    {user.avatar_url && (
-                      <img src={user.avatar_url} alt={user.login} className="w-10 h-10 rounded-full border border-slate-700" referrerPolicy="no-referrer" />
-                    )}
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{user.name || user.login}</h3>
-                      <p className="text-sm text-slate-400">Select a repository to analyze</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="text-sm text-slate-400 hover:text-white transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-
-                {isLoadingRepos ? (
-                  <div className="flex justify-center py-12">
-                    <LoadingSpinner />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {repositories.map((repo) => (
-                      <button
-                        key={repo.id}
-                        onClick={() => handleGithubAudit(repo.html_url)}
-                        disabled={isAnalyzing}
-                        className="flex flex-col items-start p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed group"
-                      >
-                        <div className="flex items-center gap-2 mb-2 w-full">
-                          <Github className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                          <span className="font-bold text-slate-200 truncate">{repo.name}</span>
-                        </div>
-                        {repo.description && (
-                          <p className="text-sm text-slate-400 line-clamp-2 mb-3">{repo.description}</p>
-                        )}
-                        <div className="flex items-center gap-4 mt-auto text-xs text-slate-500">
-                          {repo.language && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                              {repo.language}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Star className="w-3 h-3" />
-                            {repo.stargazers_count}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                    {repositories.length === 0 && (
-                      <div className="col-span-2 text-center py-8 text-slate-500">
-                        No repositories found.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="flex items-center gap-4 w-full my-4">
-              <div className="h-px bg-slate-800 flex-1"></div>
-              <span className="text-sm text-slate-500 font-medium">OR</span>
-              <div className="h-px bg-slate-800 flex-1"></div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row w-full gap-3">
-              <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Github className="w-5 h-5 text-slate-500" />
-                </div>
-                <input
-                  type="text"
-                  value={repoUrl}
-                  onChange={(e) => setRepoUrl(e.target.value)}
-                  placeholder="Enter GitHub Repo URL manually..."
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors text-base"
-                />
-              </div>
-              <button
-                onClick={() => handleGithubAudit(repoUrl)}
-                disabled={isAnalyzing || !repoUrl}
-                className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base whitespace-nowrap"
-              >
-                {isAnalyzing ? 'Scanning...' : 'Start Audit'}
-                {!isAnalyzing && <ArrowRight className="w-5 h-5" />}
-              </button>
-            </div>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.html,.css,.json,.rb,.go,.rs,.php"
-            />
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isAnalyzing}
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-300 transition-colors disabled:opacity-50"
-            >
-              <Upload className="w-4 h-4" />
-              <span className="text-sm">Or upload your project files directly</span>
-            </button>
-
-            {error && (
-              <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm w-full">
-                {error}
-              </div>
-            )}
-          </div>
-        </main>
+  const renderHome = () => (
+    <div className="min-h-screen bg-[#0A0A0B] flex flex-col relative overflow-hidden selection:bg-emerald-500/30">
+      {/* Background Gradients */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-[120px]" />
       </div>
-    );
-  }
 
-  return (
+      {/* Header */}
+      <div className="relative z-10 border-b border-slate-800/50">
+        <header className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto w-full">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10">
+              <LayoutDashboard className="w-5 h-5 text-emerald-400" />
+            </div>
+            <span className="font-bold text-xl tracking-tight text-white">
+              Portfolio<span className="text-emerald-400">Path</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <a 
+              href="https://github.com/AlbertCJC/PortfolioPath" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+            >
+              <Github className="w-4 h-4" />
+              View Source
+            </a>
+            <div className="w-px h-4 bg-slate-800"></div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium">
+              <Sparkles className="w-4 h-4" />
+              AI Powered
+            </div>
+          </div>
+        </header>
+      </div>
+
+      {/* Hero Section */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto w-full mt-[-8vh]">
+        <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6 leading-tight">
+          Turn Your Code Into<br />
+          <span className="text-emerald-400">
+            Career Gold
+          </span>
+        </h1>
+        
+        <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl leading-relaxed">
+          Upload your project code. Our AI auditor evaluates quality, performance, and generates resume-ready bullet points instantly.
+        </p>
+
+        <div className="w-full max-w-2xl flex flex-col items-center gap-6">
+          {!user ? (
+            <button
+              onClick={handleLogin}
+              className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-3 text-lg shadow-lg"
+            >
+              <Github className="w-6 h-6" />
+              Login with GitHub
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-3 text-lg shadow-lg"
+            >
+              <LayoutDashboard className="w-6 h-6" />
+              Go to Dashboard
+            </button>
+          )}
+
+          <div className="flex items-center gap-4 w-full my-4">
+            <div className="h-px bg-slate-800 flex-1"></div>
+            <span className="text-sm text-slate-500 font-medium">OR</span>
+            <div className="h-px bg-slate-800 flex-1"></div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row w-full gap-3">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Github className="w-5 h-5 text-slate-500" />
+              </div>
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="Enter GitHub Repo URL manually..."
+                className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors text-base"
+              />
+            </div>
+            <button
+              onClick={() => handleGithubAudit(repoUrl)}
+              disabled={isAnalyzing || !repoUrl}
+              className="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base whitespace-nowrap"
+            >
+              {isAnalyzing ? 'Scanning...' : 'Start Audit'}
+              {!isAnalyzing && <ArrowRight className="w-5 h-5" />}
+            </button>
+          </div>
+          
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept=".js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.html,.css,.json,.rb,.go,.rs,.php"
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isAnalyzing}
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-300 transition-colors disabled:opacity-50"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="text-sm">Or upload your project files directly</span>
+          </button>
+
+          {error && (
+            <div className="mt-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm w-full">
+              {error}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+
+  const renderDashboardLayout = () => (
     <div className="flex h-screen bg-[#0A0A0B] text-slate-200 overflow-hidden selection:bg-emerald-500/30">
       {/* Sidebar */}
       <aside className="w-64 border-r border-slate-800/50 bg-[#0A0A0B] flex flex-col z-20">
@@ -801,7 +790,16 @@ function App() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800/50">
+        <div className="p-4 border-t border-slate-800/50 space-y-2">
+          {user && (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 transition-colors rounded-lg hover:bg-red-500/10"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </button>
+          )}
           <a 
             href="https://github.com/AlbertCJC/PortfolioPath" 
             target="_blank"
@@ -825,7 +823,7 @@ function App() {
         {/* Analyze New Code Button */}
         <div className="absolute top-6 right-8 z-50">
           <button 
-            onClick={() => setIsHome(true)}
+            onClick={() => navigate('/')}
             className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
           >
             <Code className="w-4 h-4" />
@@ -849,6 +847,13 @@ function App() {
         </div>
       </main>
     </div>
+  );
+
+  return (
+    <Routes>
+      <Route path="/" element={renderHome()} />
+      <Route path="/dashboard" element={renderDashboardLayout()} />
+    </Routes>
   );
 }
 
