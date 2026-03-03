@@ -665,13 +665,13 @@ function App() {
         );
       case 'architecture':
         return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto w-full space-y-8 h-full flex flex-col">
-            <div className="mb-8 shrink-0">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full space-y-8 h-full flex flex-col items-center">
+            <div className="mb-8 shrink-0 w-full">
               <h1 className="text-3xl font-bold text-white tracking-tight">Architecture Graph</h1>
               <p className="text-slate-400">Visual representation of your project's components and their relationships.</p>
             </div>
             
-            <div className="flex-1 min-h-[800px] w-full">
+            <div className="w-full max-w-[900px] aspect-square">
               {reportData.architecture_graph ? (
                 <ArchitectureGraph data={reportData.architecture_graph} />
               ) : (
