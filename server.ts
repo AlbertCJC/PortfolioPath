@@ -36,8 +36,17 @@ async function startServer() {
   // Connect to MongoDB
   if (process.env.MONGODB_URI) {
     try {
-      await mongoose.connect(process.env.MONGODB_URI);
-      console.log("Connected to MongoDB");
+      await mongoose.connect(process.env.MONGODB_URI, {
+        serverApi: {
+          version: '1',
+          strict: true,
+          deprecationErrors: true,
+        }
+      });
+      if (mongoose.connection.db) {
+        await mongoose.connection.db.admin().command({ ping: 1 });
+      }
+      console.log("Pinged your deployment. You successfully connected to MongoDB!");
       isDbConnected = true;
     } catch (err) {
       console.error("MongoDB connection error:", err);
