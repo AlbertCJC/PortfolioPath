@@ -3,7 +3,7 @@ import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import cookieParser from "cookie-parser";
-import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,12 +15,9 @@ interface IUser {
   radarData: any;
 }
 
-const userSchema = new mongoose.Schema<IUser>({
-  githubId: { type: String, required: true, unique: true },
-  growthData: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  radarData: { type: mongoose.Schema.Types.Mixed, default: null },
-});
-const User = mongoose.model<IUser>('User', userSchema);
+let dbClient: MongoClient | null = null;
+let db: any = null;
+let usersCollection: any = null;
 
 let isDbConnected = false;
 const inMemoryUsers = new Map<string, any>();
@@ -34,16 +31,13 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI, {
-    serverApi: {
-      version: '1',
-      strict: true,
-      deprecationErrors: true,
-    }
-  }).then(async () => {
-    if (mongoose.connection.db) {
-      await mongoose.connection.db.admin().command({ ping: 1 });
-    }
+  dbClient = new MongoClient(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+  });
+  dbClient.connect().then(async () => {
+    db = dbClient!.db("portfolio_db");
+    usersCollection = db.collection("users");
+    await db.command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
     isDbConnected = true;
   }).catch((err) => {
@@ -53,6 +47,46 @@ if (process.env.MONGODB_URI) {
 } else {
   console.warn("MONGODB_URI not set. Using in-memory storage.");
 }
+
+// Test Mongo Endpoint
+app.post("/api/test-mongo", async (req, res) => {
+  const { uri, data } = req.body;
+  
+  if (!uri) {
+    return res.status(400).json({ success: false, error: "MongoDB URI is required" });
+  }
+
+  let client;
+  try {
+    client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+    });
+    await client.connect();
+    
+    const testDb = client.db("test_db");
+    const collection = testDb.collection("test_collection");
+    
+    const result = await collection.insertOne({
+      ...data,
+      timestamp: new Date()
+    });
+    
+    res.json({ 
+      success: true, 
+      message: "Successfully connected and inserted document!",
+      insertedId: result.insertedId 
+    });
+  } catch (error: any) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || "Failed to connect to MongoDB" 
+    });
+  } finally {
+    if (client) {
+      await client.close();
+    }
+  }
+});
 
 // DB Status Route
   app.get("/api/db-status", (req, res) => {
@@ -212,10 +246,12 @@ if (process.env.MONGODB_URI) {
       const githubId = userData.id.toString();
 
       let user;
-      if (isDbConnected) {
-        user = await User.findOne({ githubId });
+      if (isDbConnected && usersCollection) {
+        user = await usersCollection.findOne({ githubId });
         if (!user) {
-          user = await User.create({ githubId });
+          const newUser = { githubId, growthData: [], radarData: null };
+          await usersCollection.insertOne(newUser);
+          user = newUser;
         }
       } else {
         user = inMemoryUsers.get(githubId);
@@ -261,12 +297,13 @@ if (process.env.MONGODB_URI) {
       if (radarData !== undefined) updateData.radarData = radarData;
 
       let user;
-      if (isDbConnected) {
-        user = await User.findOneAndUpdate(
+      if (isDbConnected && usersCollection) {
+        const result = await usersCollection.findOneAndUpdate(
           { githubId },
           { $set: updateData },
-          { new: true, upsert: true }
+          { returnDocument: 'after', upsert: true }
         );
+        user = result;
       } else {
         user = inMemoryUsers.get(githubId);
         if (!user) {
@@ -361,25 +398,25 @@ if (process.env.MONGODB_URI) {
   });
 
 // Only start the server if we are NOT on Vercel
-if (!process.env.VERCEL) {
-  if (process.env.NODE_ENV !== "production") {
-    // Vite middleware for development
-    createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    }).then((vite) => {
-      app.use(vite.middlewares);
-      app.listen(PORT, "0.0.0.0", () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+async function startServer() {
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
       });
-    });
-  } else {
-    app.use(express.static('dist'));
+      app.use(vite.middlewares);
+    } else {
+      app.use(express.static("dist"));
+    }
+
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
   }
 }
+
+startServer();
 
 // Export the app for Vercel serverless functions
 export default app;
