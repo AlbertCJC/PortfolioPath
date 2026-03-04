@@ -256,18 +256,23 @@ function App() {
     }
 
     if (!reportData && activeTab !== 'dashboard') {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-          <Code className="w-16 h-16 opacity-20" />
-          <p className="text-lg">No data available. Please analyze a repository first.</p>
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className="px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      );
+      const hasRadarData = activeTab === 'radar' && radarData && Object.keys(radarData).length > 0;
+      const hasGrowthData = activeTab === 'growth' && growthData && growthData.length > 0;
+      
+      if (!hasRadarData && !hasGrowthData) {
+        return (
+          <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
+            <Code className="w-16 h-16 opacity-20" />
+            <p className="text-lg">No data available. Please analyze a repository first.</p>
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className="px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-lg hover:bg-emerald-500/20 transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        );
+      }
     }
 
     if (activeTab === 'analyzer') {
