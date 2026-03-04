@@ -17,8 +17,8 @@ interface IUser {
 
 const userSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
-  growthData: { type: mongoose.Schema.Types.Mixed, default: {} },
-  radarData: { type: mongoose.Schema.Types.Mixed, default: {} },
+  growthData: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  radarData: { type: mongoose.Schema.Types.Mixed, default: null },
 });
 
 // Prevent overwriting model if already compiled
@@ -159,7 +159,7 @@ app.get("/api/user/data", async (req, res) => {
     } else {
       user = inMemoryUsers.get(githubId);
       if (!user) {
-        user = { githubId, growthData: {}, radarData: {} };
+        user = { githubId, growthData: [], radarData: null };
         inMemoryUsers.set(githubId, user);
       }
     }
@@ -209,7 +209,7 @@ app.post("/api/user/data", async (req, res) => {
     } else {
       user = inMemoryUsers.get(githubId);
       if (!user) {
-        user = { githubId, growthData: {}, radarData: {} };
+        user = { githubId, growthData: [], radarData: null };
       }
       if (growthData !== undefined) user.growthData = growthData;
       if (radarData !== undefined) user.radarData = radarData;

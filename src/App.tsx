@@ -68,7 +68,7 @@ function App() {
           const dataRes = await fetch('/api/user/data');
           if (dataRes.ok) {
             const data = await dataRes.json();
-            setGrowthData(data.growthData || []);
+            setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
             setRadarData(data.radarData || null);
           }
           
@@ -175,13 +175,13 @@ function App() {
         const newGrowthData = [...growthData, newGrowthEntry];
         
         // Average the new skill radar with the existing one, or just use the new one if none exists
-        const newRadarData = radarData ? {
-          frontend: Math.round((radarData.frontend + result.skill_radar.frontend) / 2),
-          backend: Math.round((radarData.backend + result.skill_radar.backend) / 2),
-          devops: Math.round((radarData.devops + result.skill_radar.devops) / 2),
-          security: Math.round((radarData.security + result.skill_radar.security) / 2),
-          design: Math.round((radarData.design + result.skill_radar.design) / 2),
-          architecture: Math.round((radarData.architecture + result.skill_radar.architecture) / 2),
+        const newRadarData = (radarData && Object.keys(radarData).length > 0 && typeof radarData.frontend === 'number' && !isNaN(radarData.frontend)) ? {
+          frontend: Math.round(((radarData.frontend || 0) + result.skill_radar.frontend) / 2),
+          backend: Math.round(((radarData.backend || 0) + result.skill_radar.backend) / 2),
+          devops: Math.round(((radarData.devops || 0) + result.skill_radar.devops) / 2),
+          security: Math.round(((radarData.security || 0) + result.skill_radar.security) / 2),
+          design: Math.round(((radarData.design || 0) + result.skill_radar.design) / 2),
+          architecture: Math.round(((radarData.architecture || 0) + result.skill_radar.architecture) / 2),
         } : result.skill_radar;
         
         setGrowthData(newGrowthData);
@@ -456,22 +456,22 @@ function App() {
         );
       case 'radar': {
         // Use radarData from state if available, otherwise reportData, otherwise fallback
-        const radarScores = radarData || reportData?.skill_radar || {
+        const radarScores = (radarData && Object.keys(radarData).length > 0 && typeof radarData.frontend === 'number' && !isNaN(radarData.frontend)) ? radarData : (reportData?.skill_radar || {
           frontend: 45,
           backend: 85,
           devops: 30,
           security: 50,
           design: 25,
           architecture: 70
-        };
+        });
 
         const chartData = [
-          { subject: 'Frontend', A: radarScores.frontend, fullMark: 100 },
-          { subject: 'Backend', A: radarScores.backend, fullMark: 100 },
-          { subject: 'DevOps', A: radarScores.devops, fullMark: 100 },
-          { subject: 'Security', A: radarScores.security, fullMark: 100 },
-          { subject: 'Design', A: radarScores.design, fullMark: 100 },
-          { subject: 'Architecture', A: radarScores.architecture, fullMark: 100 },
+          { subject: 'Frontend', A: Number(radarScores.frontend) || 0, fullMark: 100 },
+          { subject: 'Backend', A: Number(radarScores.backend) || 0, fullMark: 100 },
+          { subject: 'DevOps', A: Number(radarScores.devops) || 0, fullMark: 100 },
+          { subject: 'Security', A: Number(radarScores.security) || 0, fullMark: 100 },
+          { subject: 'Design', A: Number(radarScores.design) || 0, fullMark: 100 },
+          { subject: 'Architecture', A: Number(radarScores.architecture) || 0, fullMark: 100 },
         ];
 
         // Sort skills to separate Top Strengths from Areas for Growth
@@ -491,12 +491,16 @@ function App() {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Radar Chart Card */}
-              <div className="lg:col-span-2 bg-[#131825] rounded-2xl p-6 border border-slate-800/50 min-h-[400px] flex items-center justify-center">
+              <div className="lg:col-span-2 bg-[#131825] rounded-2xl p-6 border border-slate-800/50 min-h-[400px] w-full min-w-0">
                 <ResponsiveContainer width="100%" height={400}>
                   <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
                     <PolarGrid stroke="#334155" />
                     <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                      itemStyle={{ color: '#10b981' }}
+                    />
                     <Radar
                       name="Skills"
                       dataKey="A"
@@ -715,7 +719,7 @@ function App() {
                     <TrendingUp className="w-5 h-5 text-emerald-400" />
                     Score Progression
                   </h3>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={growthData.map(d => ({ ...d, displayDate: new Date(d.date).toLocaleDateString() }))}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />

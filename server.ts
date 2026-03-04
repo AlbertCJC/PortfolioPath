@@ -17,8 +17,8 @@ interface IUser {
 
 const userSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
-  growthData: { type: mongoose.Schema.Types.Mixed, default: {} },
-  radarData: { type: mongoose.Schema.Types.Mixed, default: {} },
+  growthData: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  radarData: { type: mongoose.Schema.Types.Mixed, default: null },
 });
 const User = mongoose.model<IUser>('User', userSchema);
 
@@ -220,7 +220,7 @@ if (process.env.MONGODB_URI) {
       } else {
         user = inMemoryUsers.get(githubId);
         if (!user) {
-          user = { githubId, growthData: {}, radarData: {} };
+          user = { githubId, growthData: [], radarData: null };
           inMemoryUsers.set(githubId, user);
         }
       }
@@ -270,7 +270,7 @@ if (process.env.MONGODB_URI) {
       } else {
         user = inMemoryUsers.get(githubId);
         if (!user) {
-          user = { githubId, growthData: {}, radarData: {} };
+          user = { githubId, growthData: [], radarData: null };
         }
         if (growthData !== undefined) user.growthData = growthData;
         if (radarData !== undefined) user.radarData = radarData;
