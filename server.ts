@@ -20,7 +20,6 @@ let db: any = null;
 let usersCollection: any = null;
 
 let isDbConnected = false;
-const inMemoryUsers = new Map<string, any>();
 
 const app = express();
 const PORT = 3000;
@@ -42,10 +41,9 @@ if (process.env.MONGODB_URI) {
     isDbConnected = true;
   }).catch((err) => {
     console.error("MongoDB connection error:", err);
-    console.warn("Falling back to in-memory storage.");
   });
 } else {
-  console.warn("MONGODB_URI not set. Using in-memory storage.");
+  console.warn("MONGODB_URI not set. Database features will not work.");
 }
 
 // Test Mongo Endpoint
@@ -254,11 +252,7 @@ app.post("/api/test-mongo", async (req, res) => {
           user = newUser;
         }
       } else {
-        user = inMemoryUsers.get(githubId);
-        if (!user) {
-          user = { githubId, growthData: [], radarData: null };
-          inMemoryUsers.set(githubId, user);
-        }
+        return res.status(503).json({ error: "Database not connected" });
       }
 
       res.json({
@@ -305,13 +299,7 @@ app.post("/api/test-mongo", async (req, res) => {
         );
         user = result;
       } else {
-        user = inMemoryUsers.get(githubId);
-        if (!user) {
-          user = { githubId, growthData: [], radarData: null };
-        }
-        if (growthData !== undefined) user.growthData = growthData;
-        if (radarData !== undefined) user.radarData = radarData;
-        inMemoryUsers.set(githubId, user);
+        return res.status(503).json({ error: "Database not connected" });
       }
 
       res.json({ success: true, data: user });
