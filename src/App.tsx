@@ -17,6 +17,7 @@ import { ResumeData, initialResumeData, TemplateType } from './resumeTypes';
 import ResumeForm from './components/ResumeForm';
 import ResumePreview from './components/ResumePreview';
 import TemplateSelector from './components/TemplateSelector';
+import { Toast, ToastType } from './components/Toast';
 
 type Tab = 'dashboard' | 'analyzer' | 'radar' | 'learning' | 'resume' | 'growth' | 'architecture';
 
@@ -48,7 +49,18 @@ function App() {
   const [reportData, setReportData] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Toast state
+  const [toast, setToast] = useState<{ type: ToastType; title: string; message: string } | null>(null);
+
+  const showToast = (type: ToastType, title: string, message: string) => {
+    setToast({ type, title, message });
+  };
+
+  const closeToast = () => {
+    setToast(null);
+  };
+
   const [user, setUser] = useState<any>(null);
   const [repositories, setRepositories] = useState<any[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
@@ -239,7 +251,7 @@ function App() {
       );
 
       if (!authWindow) {
-        alert('Please allow popups for this site to connect your account.');
+        showToast('warning', 'Popups Blocked', 'Please allow popups for this site to connect your account.');
       }
     } catch (error) {
       console.error('OAuth error:', error);
@@ -275,14 +287,14 @@ function App() {
       
       if (res.ok) {
         console.log('Resume saved successfully');
-        alert('Resume saved successfully!');
+        showToast('success', 'Success', 'Resume saved successfully.');
       } else {
         console.error('Failed to save resume:', res.status);
-        alert('Failed to save resume. Please try again.');
+        showToast('error', 'Error', 'Failed to save resume. Please try again.');
       }
     } catch (error) {
       console.error('Failed to save resume:', error);
-      alert('An error occurred while saving the resume.');
+      showToast('error', 'Error', 'An error occurred while saving the resume.');
     }
   };
 
@@ -1128,10 +1140,23 @@ function App() {
   );
 
   return (
-    <Routes>
-      <Route path="/" element={renderHome()} />
-      <Route path="/dashboard" element={renderDashboardLayout()} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={renderHome()} />
+        <Route path="/dashboard" element={renderDashboardLayout()} />
+      </Routes>
+      <AnimatePresence>
+        {toast && (
+          <Toast
+            key="toast"
+            type={toast.type}
+            title={toast.title}
+            message={toast.message}
+            onClose={closeToast}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
