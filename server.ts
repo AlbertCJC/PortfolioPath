@@ -18,21 +18,36 @@ app.use(cookieParser());
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI;
-let dbConnectionError: string | null = null;
 
-if (!MONGODB_URI) {
-  console.warn("MONGODB_URI not set. Database features will not work.");
-  dbConnectionError = "MONGODB_URI environment variable not set";
-} else {
-  mongoose.connect(MONGODB_URI)
-    .then(() => {
-      console.log("Connected to MongoDB via Mongoose");
-      dbConnectionError = null;
-    })
-    .catch((err) => {
-      console.error("MongoDB connection error:", err);
-      dbConnectionError = err.message;
-    });
+// Cached connection promise
+let cachedPromise: Promise<typeof mongoose> | null = null;
+
+async function connectToDatabase() {
+  if (!MONGODB_URI) {
+    throw new Error("MONGODB_URI environment variable not set");
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  }
+
+  if (cachedPromise) {
+    return cachedPromise;
+  }
+
+  cachedPromise = mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+    dbName: 'portfolio_path',
+  }).then((mongoose) => {
+    console.log("Connected to MongoDB via Mongoose");
+    return mongoose;
+  }).catch((err) => {
+    console.error("MongoDB connection error:", err);
+    cachedPromise = null;
+    throw err;
+  });
+
+  return cachedPromise;
 }
 
 // User Schema
@@ -45,13 +60,21 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
 // DB Status Route
-app.get("/api/db-status", (req, res) => {
+app.get("/api/db-status", async (req, res) => {
+  try {
+    if (MONGODB_URI) {
+      await connectToDatabase();
+    }
+  } catch (e) {
+    // Ignore error, just report status
+  }
+  
   const readyState = mongoose.connection.readyState;
   const connected = readyState === 1;
   
   res.json({ 
     connected: connected, 
-    error: dbConnectionError || (connected ? null : `Database not connected (readyState: ${readyState})`)
+    error: connected ? null : `Database not connected (readyState: ${readyState})`
   });
 });
 
@@ -260,8 +283,10 @@ app.get("/api/user/data", async (req, res) => {
     const userData = await userRes.json();
     const githubId = userData.id.toString();
 
-    if (mongoose.connection.readyState !== 1) {
-       return res.status(503).json({ error: "Database not connected" });
+    try {
+      await connectToDatabase();
+    } catch (e) {
+      return res.status(503).json({ error: "Database not connected" });
     }
 
     let user = await User.findOne({ githubId });
@@ -304,7 +329,9 @@ app.post("/api/user/data", async (req, res) => {
     if (growthData !== undefined) updateData.growthData = growthData;
     if (radarData !== undefined) updateData.radarData = radarData;
 
-    if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectToDatabase();
+    } catch (e) {
       return res.status(503).json({ error: "Database not connected" });
     }
 
