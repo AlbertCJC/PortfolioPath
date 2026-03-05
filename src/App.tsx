@@ -127,11 +127,38 @@ function App() {
           if (userData) {
             setUser(userData);
             
+            // Pre-populate resume data with GitHub profile info
+            setResumeData(prev => ({
+              ...prev,
+              personalInfo: {
+                ...prev.personalInfo,
+                fullName: userData.name || userData.login || prev.personalInfo.fullName,
+                email: userData.email || prev.personalInfo.email,
+                location: userData.location || prev.personalInfo.location,
+                website: userData.blog || userData.html_url || prev.personalInfo.website,
+                summary: userData.bio || prev.personalInfo.summary,
+                profileImage: userData.avatar_url || prev.personalInfo.profileImage,
+              }
+            }));
+            
             setIsLoadingRepos(true);
             const reposRes = await fetch('/api/github/repositories');
             if (reposRes.ok) {
               const reposData = await reposRes.json();
               setRepositories(reposData);
+
+              // Auto-fill skills from repositories immediately
+              const repoSkills = new Set<string>();
+              reposData.forEach((repo: any) => {
+                if (repo.language) repoSkills.add(repo.language);
+              });
+              
+              if (repoSkills.size > 0) {
+                setResumeData(prev => ({
+                  ...prev,
+                  skills: Array.from(new Set([...prev.skills, ...Array.from(repoSkills)]))
+                }));
+              }
             }
             
             const dataRes = await fetch('/api/user/data');
@@ -326,7 +353,7 @@ function App() {
       );
     }
 
-    if (!reportData && activeTab !== 'dashboard') {
+    if (!reportData && activeTab !== 'dashboard' && activeTab !== 'resume') {
       const hasRadarData = activeTab === 'radar' && radarData && Object.keys(radarData).length > 0;
       const hasGrowthData = activeTab === 'growth' && growthData && growthData.length > 0;
       
