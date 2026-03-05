@@ -6,14 +6,14 @@ export async function fetchGithubRepo(repoUrl: string): Promise<string> {
   const owner = match[1];
   const repo = match[2].replace(".git", "");
 
-  // 1. Get default branch
-  const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+  // 1. Get default branch via proxy
+  const repoRes = await fetch(`/api/github/repo-info?owner=${owner}&repo=${repo}`);
   if (!repoRes.ok) throw new Error("Failed to fetch repository info");
   const repoData = await repoRes.json();
   const defaultBranch = repoData.default_branch;
 
-  // 2. Get recursive tree
-  const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`);
+  // 2. Get recursive tree via proxy
+  const treeRes = await fetch(`/api/github/repo-tree?owner=${owner}&repo=${repo}&branch=${defaultBranch}`);
   if (!treeRes.ok) throw new Error("Failed to fetch repository tree");
   const treeData = await treeRes.json();
 
@@ -37,11 +37,11 @@ export async function fetchGithubRepo(repoUrl: string): Promise<string> {
   
   let combinedCode = `// Repository: ${owner}/${repo}\n\n`;
 
-  // 4. Fetch raw contents
+  // 4. Fetch raw contents via proxy
   await Promise.all(filesToFetch.map(async (file: any) => {
     try {
       const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${defaultBranch}/${file.path}`;
-      const rawRes = await fetch(rawUrl);
+      const rawRes = await fetch(`/api/github/raw?url=${encodeURIComponent(rawUrl)}`);
       if (rawRes.ok) {
         const content = await rawRes.text();
         combinedCode += `\n\n// --- File: ${file.path} ---\n${content}`;

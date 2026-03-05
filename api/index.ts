@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 const app = express();
 app.set('trust proxy', 1);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
 // MongoDB Connection
@@ -95,6 +95,7 @@ app.get("/auth/callback", async (req, res) => {
       secure: true,
       sameSite: "none",
       httpOnly: true,
+      path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
@@ -136,6 +137,7 @@ app.post("/api/auth/logout", (req, res) => {
     secure: true,
     sameSite: "none",
     httpOnly: true,
+    path: '/'
   });
   res.json({ success: true });
 });
@@ -181,6 +183,57 @@ app.get("/api/github/repositories", async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch repositories" });
+  }
+});
+
+// New Proxy Routes for GitHub
+app.get("/api/github/repo-info", async (req, res) => {
+  const token = req.cookies.github_token;
+  const { owner, repo } = req.query;
+
+  if (!owner || !repo) {
+    res.status(400).json({ error: "Missing owner or repo" });
+    return;
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'PortfolioPath-App'
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+    if (!response.ok) throw new Error("Failed to fetch repo info");
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/github/repo-tree", async (req, res) => {
+  const token = req.cookies.github_token;
+  const { owner, repo, branch } = req.query;
+
+  if (!owner || !repo || !branch) {
+    res.status(400).json({ error: "Missing owner, repo, or branch" });
+    return;
+  }
+
+  try {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'PortfolioPath-App'
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, { headers });
+    if (!response.ok) throw new Error("Failed to fetch repo tree");
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
