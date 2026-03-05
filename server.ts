@@ -271,92 +271,95 @@ app.get("/api/github/repo-tree", async (req, res) => {
   }
 });
 
-// User Data Routes (MongoDB)
-app.get("/api/user/data", async (req, res) => {
-  const token = req.cookies.github_token;
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    // Get user ID from GitHub
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
-    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
-    const userData = await userRes.json();
-    const githubId = userData.id.toString();
-
-    try {
-      await connectToDatabase();
-    } catch (e) {
-      return res.status(503).json({ error: "Database not connected" });
-    }
-
-    let user = await User.findOne({ githubId });
-    if (!user) {
-      user = await User.create({ githubId, growthData: [], radarData: null });
-    }
-
-    res.json({
-      growthData: user.growthData,
-      radarData: user.radarData,
-      resumeData: user.resumeData
-    });
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    res.status(500).json({ error: "Failed to fetch user data" });
-  }
-});
-
-app.post("/api/user/data", async (req, res) => {
-  const token = req.cookies.github_token;
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    // Get user ID from GitHub
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
-    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
-    const userData = await userRes.json();
-    const githubId = userData.id.toString();
-
-    const { growthData, radarData, resumeData } = req.body;
+    // User Data Routes (MongoDB)
+    app.get("/api/user/data", async (req, res) => {
+      const token = req.cookies.github_token;
+      if (!token) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
     
-    const updateData: any = {};
-    if (growthData !== undefined) updateData.growthData = growthData;
-    if (radarData !== undefined) updateData.radarData = radarData;
-    if (resumeData !== undefined) updateData.resumeData = resumeData;
-
-    try {
-      await connectToDatabase();
-    } catch (e) {
-      return res.status(503).json({ error: "Database not connected" });
-    }
-
-    const user = await User.findOneAndUpdate(
-      { githubId },
-      { $set: updateData },
-      { new: true, upsert: true }
-    );
-
-    res.json({ success: true, data: user });
-  } catch (error) {
-    console.error("Error saving user data:", error);
-    res.status(500).json({ error: "Failed to save user data" });
-  }
-});
+      try {
+        // Get user ID from GitHub
+        const userRes = await fetch("https://api.github.com/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        });
+        if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
+        const userData = await userRes.json();
+        const githubId = userData.id.toString();
+    
+        try {
+          await connectToDatabase();
+        } catch (e) {
+          return res.status(503).json({ error: "Database not connected" });
+        }
+    
+        let user = await User.findOne({ githubId });
+        if (!user) {
+          user = await User.create({ githubId, growthData: [], radarData: null });
+        }
+    
+        console.log(`[API] Fetching user data for ${githubId}. Has ResumeData: ${!!user.resumeData}`);
+        res.json({
+          growthData: user.growthData,
+          radarData: user.radarData,
+          resumeData: user.resumeData
+        });
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        res.status(500).json({ error: "Failed to fetch user data" });
+      }
+    });
+    
+    app.post("/api/user/data", async (req, res) => {
+      const token = req.cookies.github_token;
+      if (!token) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+    
+      try {
+        // Get user ID from GitHub
+        const userRes = await fetch("https://api.github.com/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        });
+        if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
+        const userData = await userRes.json();
+        const githubId = userData.id.toString();
+    
+        const { growthData, radarData, resumeData } = req.body;
+        
+        console.log(`[API] Saving user data for ${githubId}. ResumeData present: ${resumeData !== undefined}`);
+    
+        const updateData: any = {};
+        if (growthData !== undefined) updateData.growthData = growthData;
+        if (radarData !== undefined) updateData.radarData = radarData;
+        if (resumeData !== undefined) updateData.resumeData = resumeData;
+    
+        try {
+          await connectToDatabase();
+        } catch (e) {
+          return res.status(503).json({ error: "Database not connected" });
+        }
+    
+        const user = await User.findOneAndUpdate(
+          { githubId },
+          { $set: updateData },
+          { new: true, upsert: true }
+        );
+    
+        res.json({ success: true, data: user });
+      } catch (error) {
+        console.error("Error saving user data:", error);
+        res.status(500).json({ error: "Failed to save user data" });
+      }
+    });
 
 // GitHub API Routes
 app.get("/api/github/contents", async (req, res) => {

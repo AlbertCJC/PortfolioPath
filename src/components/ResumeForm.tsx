@@ -14,6 +14,7 @@ export default function ResumeForm({ data, updateData, onAutoFill, onSave }: Res
 
   const toggleLock = () => {
     if (!isLocked && onSave) {
+      console.log("Saving changes...");
       onSave();
     }
     setIsLocked(!isLocked);

@@ -164,10 +164,14 @@ function App() {
             const dataRes = await fetch('/api/user/data');
             if (dataRes.ok) {
               const data = await dataRes.json();
+              console.log("Fetched user data from DB:", data);
               setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
               setRadarData(data.radarData || null);
               if (data.resumeData) {
+                console.log("Applying saved resume data");
                 setResumeData(data.resumeData);
+              } else {
+                console.log("No saved resume data found");
               }
             }
             
@@ -259,17 +263,26 @@ function App() {
 
   const handleSaveResume = async () => {
     if (!user) return;
+    console.log("Saving resume data:", resumeData);
     try {
-      await fetch('/api/user/data', {
+      const res = await fetch('/api/user/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           resumeData: resumeData
         })
       });
-      console.log('Resume saved successfully');
+      
+      if (res.ok) {
+        console.log('Resume saved successfully');
+        alert('Resume saved successfully!');
+      } else {
+        console.error('Failed to save resume:', res.status);
+        alert('Failed to save resume. Please try again.');
+      }
     } catch (error) {
       console.error('Failed to save resume:', error);
+      alert('An error occurred while saving the resume.');
     }
   };
 
