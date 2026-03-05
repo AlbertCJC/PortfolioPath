@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, Code, Target, GraduationCap, Briefcase, TrendingUp, 
   Github, Sparkles, Zap, CheckCircle2, Award, Cpu, Terminal, Database,
-  ArrowRight, Upload, AlertTriangle, ShieldAlert, Lightbulb, Star, LogOut
+  ArrowRight, Upload, AlertTriangle, ShieldAlert, Lightbulb, Star, LogOut,
+  Printer, FileText, LayoutTemplate, PenTool
 } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -12,8 +13,12 @@ import { analyzeCode, AnalysisResult } from './services/gemini';
 import { fetchGithubRepo } from './services/github';
 import ArchitectureGraph from './components/ArchitectureGraph';
 import { cn } from './lib/utils';
+import { ResumeData, initialResumeData, TemplateType } from './resumeTypes';
+import ResumeForm from './components/ResumeForm';
+import ResumePreview from './components/ResumePreview';
+import TemplateSelector from './components/TemplateSelector';
 
-type Tab = 'dashboard' | 'analyzer' | 'radar' | 'learning' | 'career' | 'growth' | 'architecture';
+type Tab = 'dashboard' | 'analyzer' | 'radar' | 'learning' | 'resume' | 'growth' | 'architecture';
 
 const formatText = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -31,7 +36,7 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'architecture', label: 'Architecture', icon: Cpu },
   { id: 'radar', label: 'Skill Radar', icon: Target },
   { id: 'learning', label: 'Learning Path', icon: GraduationCap },
-  { id: 'career', label: 'Career Generator', icon: Briefcase },
+  { id: 'resume', label: 'Resume Generator', icon: FileText },
   { id: 'growth', label: 'Growth', icon: TrendingUp },
 ];
 
@@ -49,6 +54,68 @@ function App() {
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [growthData, setGrowthData] = useState<any[]>([]);
   const [radarData, setRadarData] = useState<any>(null);
+
+  // Resume Generator State
+  const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
+  const [template, setTemplate] = useState<TemplateType>('professional');
+  const [resumeActiveTab, setResumeActiveTab] = useState<'edit' | 'preview'>('edit');
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handleAutoFill = () => {
+    const newSkills = new Set(resumeData.skills);
+
+    // Add from repositories
+    if (repositories.length > 0) {
+      repositories.forEach(repo => {
+        if (repo.language) newSkills.add(repo.language);
+      });
+    }
+
+    // Add from current analysis
+    if (reportData?.tech_stack?.language) {
+      newSkills.add(reportData.tech_stack.language);
+    }
+
+    // Add from radar
+    const radar = radarData || reportData?.skill_radar;
+    if (radar) {
+      if (radar.frontend > 60) newSkills.add('Frontend Development');
+      if (radar.backend > 60) newSkills.add('Backend Development');
+      if (radar.devops > 60) newSkills.add('DevOps');
+      if (radar.security > 60) newSkills.add('Security');
+      if (radar.design > 60) newSkills.add('UI/UX Design');
+      if (radar.architecture > 60) newSkills.add('System Architecture');
+    }
+
+    setResumeData({
+      ...resumeData,
+      skills: Array.from(newSkills)
+    });
+  };
+
+  const handlePrint = () => {
+    // Create a temporary iframe to print
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open('', '', 'height=800,width=800');
+    if (!printWindow) return;
+
+    printWindow.document.write('<html><head><title>Resume</title>');
+    // Include Tailwind via CDN for the print window since we can't easily grab the compiled CSS styles in this environment
+    printWindow.document.write('<script src="https://cdn.tailwindcss.com"></script>');
+    printWindow.document.write('</head><body class="bg-white">');
+    printWindow.document.write(content.innerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+
+    // Wait for resources to load
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -640,35 +707,108 @@ function App() {
           </motion.div>
         );
       }
-      case 'career':
+      case 'resume':
         return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto w-full space-y-8">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white tracking-tight">Career Generator</h1>
-              <p className="text-slate-400">Professional resume bullets generated from your code.</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full space-y-8">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Resume Generator</h1>
+                <p className="text-slate-400">Create professional resumes with AI-generated content.</p>
+              </div>
+              <button
+                onClick={handlePrint}
+                className="hidden md:flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium text-sm shadow-lg shadow-emerald-900/20"
+              >
+                <Printer size={16} />
+                Export PDF
+              </button>
             </div>
-            <div className="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-1 overflow-hidden">
-              <div className="bg-slate-950/80 rounded-xl p-8">
-                <div className="space-y-4">
-                  {reportData.professional_impact.resume_bullets.map((bullet, i) => (
-                    <div key={i} className="group relative p-5 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-colors flex gap-4">
-                      <TrendingUp className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                      <p className="text-slate-200 leading-relaxed text-lg">
-                        {bullet}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8 pt-8 border-t border-slate-800">
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(reportData.professional_impact.resume_bullets.join('\n'))}
-                    className="w-full py-4 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: Controls (Mobile Tabs + Desktop Sidebar) */}
+              <div className="lg:col-span-5 space-y-6">
+                
+                {/* Mobile Tab Switcher */}
+                <div className="lg:hidden flex bg-[#131825] p-1 rounded-xl shadow-sm border border-slate-800 mb-6">
+                  <button
+                    onClick={() => setResumeActiveTab('edit')}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      resumeActiveTab === 'edit' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:bg-slate-800/50'
+                    }`}
                   >
-                    <Briefcase className="w-5 h-5" />
-                    Copy All to Clipboard
+                    <PenTool size={16} /> Edit
+                  </button>
+                  <button
+                    onClick={() => setResumeActiveTab('preview')}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      resumeActiveTab === 'preview' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    <LayoutTemplate size={16} /> Preview
                   </button>
                 </div>
+
+                {/* Editor Section */}
+                <div className={`${resumeActiveTab === 'edit' ? 'block' : 'hidden'} lg:block space-y-6`}>
+                  <div className="bg-[#131825] p-6 rounded-xl shadow-sm border border-slate-800">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                      <LayoutTemplate size={18} className="text-emerald-400" />
+                      Choose Template
+                    </h2>
+                    <TemplateSelector currentTemplate={template} onSelect={setTemplate} />
+                  </div>
+
+                  <ResumeForm 
+                    data={resumeData} 
+                    updateData={setResumeData} 
+                    onAutoFill={handleAutoFill}
+                  />
+                </div>
               </div>
+
+              {/* Right Column: Preview */}
+              <div className={`lg:col-span-7 ${resumeActiveTab === 'preview' ? 'block' : 'hidden'} lg:block`}>
+                <div className="sticky top-24">
+                  <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-800">
+                    <div className="bg-[#0A0A0B] px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+                      <span className="text-slate-400 text-xs font-mono">Live Preview</span>
+                      <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                      </div>
+                    </div>
+                    
+                    {/* A4 Aspect Ratio Container */}
+                    <div className="relative w-full bg-slate-800/50 overflow-auto max-h-[calc(100vh-12rem)] p-4 md:p-8 flex justify-center">
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="bg-white shadow-lg w-full max-w-[210mm] min-h-[297mm] origin-top transform transition-transform"
+                        style={{ aspectRatio: '210/297' }}
+                      >
+                        <div ref={printRef} className="h-full w-full">
+                          <ResumePreview data={resumeData} template={template} />
+                        </div>
+                      </motion.div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-center lg:hidden">
+                     <button
+                      onClick={handlePrint}
+                      className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-emerald-700 transition-colors font-medium"
+                    >
+                      <Printer size={18} />
+                      Export PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </motion.div>
         );
