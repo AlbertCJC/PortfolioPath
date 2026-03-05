@@ -146,6 +146,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+      localStorage.removeItem('oauth_success'); // Clear the storage event trigger
       setUser(null);
       setRepositories([]);
       setGrowthData([]);
