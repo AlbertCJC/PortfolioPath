@@ -1,12 +1,13 @@
+import "dotenv/config";
 import express from "express";
+import { createServer as createViteServer } from "vite";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import cookieParser from "cookie-parser";
-import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
 
-const app = express();
-app.set('trust proxy', 1);
-
-app.use(express.json());
-app.use(cookieParser());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // MongoDB Schema
 interface IUser {
@@ -15,41 +16,47 @@ interface IUser {
   radarData: any;
 }
 
-const userSchema = new mongoose.Schema<IUser>({
-  githubId: { type: String, required: true, unique: true },
-  growthData: { type: [mongoose.Schema.Types.Mixed], default: [] },
-  radarData: { type: mongoose.Schema.Types.Mixed, default: null },
-});
-
-// Prevent overwriting model if already compiled
-const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);
+let dbClient: MongoClient | null = null;
+let db: any = null;
+let usersCollection: any = null;
 
 let isDbConnected = false;
+let dbConnectionError: string | null = null;
+
+const app = express();
+const PORT = 3000;
+app.set('trust proxy', 1);
+
+app.use(express.json());
+app.use(cookieParser());
 
 // Connect to MongoDB
 if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI, {
-    serverApi: {
-      version: '1',
-      strict: true,
-      deprecationErrors: true,
-    }
-  }).then(async () => {
-    if (mongoose.connection.db) {
-      await mongoose.connection.db.admin().command({ ping: 1 });
-    }
+  dbClient = new MongoClient(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000,
+  });
+  dbClient.connect().then(async () => {
+    db = dbClient!.db("portfolio_path");
+    usersCollection = db.collection("users");
+    await db.command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
     isDbConnected = true;
+    dbConnectionError = null;
   }).catch((err) => {
     console.error("MongoDB connection error:", err);
+    dbConnectionError = err.message;
   });
 } else {
   console.warn("MONGODB_URI not set. Database features will not work.");
+  dbConnectionError = "MONGODB_URI environment variable not set";
 }
 
 // DB Status Route
 app.get("/api/db-status", (req, res) => {
-  res.json({ connected: isDbConnected });
+  res.json({ 
+    connected: isDbConnected, 
+    error: dbConnectionError 
+  });
 });
 
 // GitHub OAuth Routes
@@ -102,11 +109,23 @@ app.get("/auth/callback", async (req, res) => {
       <html>
         <body>
           <script>
+            // Try to use localStorage as a fallback for cross-window communication
+            try {
+              localStorage.setItem('oauth_success', Date.now().toString());
+            } catch (e) {
+              console.error('localStorage error:', e);
+            }
+            
             if (window.opener) {
               window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
               window.close();
             } else {
-              window.location.href = '/';
+              // If opener is lost, try to close anyway, or redirect
+              window.close();
+              // Fallback if close fails (e.g., not opened by script)
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1000);
             }
           </script>
           <p>Authentication successful. This window should close automatically.</p>
@@ -126,101 +145,6 @@ app.post("/api/auth/logout", (req, res) => {
     httpOnly: true,
   });
   res.json({ success: true });
-});
-
-const inMemoryUsers = new Map<string, any>();
-
-// User Data Routes
-app.get("/api/user/data", async (req, res) => {
-  const token = req.cookies.github_token;
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    // Get user ID from GitHub
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
-    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
-    const userData = await userRes.json();
-    const githubId = userData.id.toString();
-
-    let user;
-    if (isDbConnected) {
-      user = await User.findOne({ githubId });
-      if (!user) {
-        user = await User.create({ githubId });
-      }
-    } else {
-      user = inMemoryUsers.get(githubId);
-      if (!user) {
-        user = { githubId, growthData: [], radarData: null };
-        inMemoryUsers.set(githubId, user);
-      }
-    }
-
-    res.json({
-      growthData: user.growthData,
-      radarData: user.radarData
-    });
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-    res.status(500).json({ error: "Failed to fetch user data" });
-  }
-});
-
-app.post("/api/user/data", async (req, res) => {
-  const token = req.cookies.github_token;
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-
-  try {
-    // Get user ID from GitHub
-    const userRes = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
-      },
-    });
-    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
-    const userData = await userRes.json();
-    const githubId = userData.id.toString();
-
-    const { growthData, radarData } = req.body;
-    
-    const updateData: any = {};
-    if (growthData !== undefined) updateData.growthData = growthData;
-    if (radarData !== undefined) updateData.radarData = radarData;
-
-    let user;
-    if (isDbConnected) {
-      user = await User.findOneAndUpdate(
-        { githubId },
-        { $set: updateData },
-        { new: true, upsert: true }
-      );
-    } else {
-      user = inMemoryUsers.get(githubId);
-      if (!user) {
-        user = { githubId, growthData: [], radarData: null };
-      }
-      if (growthData !== undefined) user.growthData = growthData;
-      if (radarData !== undefined) user.radarData = radarData;
-      inMemoryUsers.set(githubId, user);
-    }
-
-    res.json({ success: true, user });
-  } catch (error) {
-    console.error("Error saving user data:", error);
-    res.status(500).json({ error: "Failed to save user data" });
-  }
 });
 
 app.get("/api/github/user", async (req, res) => {
@@ -267,6 +191,92 @@ app.get("/api/github/repositories", async (req, res) => {
   }
 });
 
+// User Data Routes (MongoDB)
+app.get("/api/user/data", async (req, res) => {
+  const token = req.cookies.github_token;
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    // Get user ID from GitHub
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
+    const userData = await userRes.json();
+    const githubId = userData.id.toString();
+
+    let user;
+    if (isDbConnected && usersCollection) {
+      user = await usersCollection.findOne({ githubId });
+      if (!user) {
+        const newUser = { githubId, growthData: [], radarData: null };
+        await usersCollection.insertOne(newUser);
+        user = newUser;
+      }
+    } else {
+      return res.status(503).json({ error: "Database not connected" });
+    }
+
+    res.json({
+      growthData: user.growthData,
+      radarData: user.radarData
+    });
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    res.status(500).json({ error: "Failed to fetch user data" });
+  }
+});
+
+app.post("/api/user/data", async (req, res) => {
+  const token = req.cookies.github_token;
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    // Get user ID from GitHub
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+    });
+    if (!userRes.ok) throw new Error("Failed to fetch user from GitHub");
+    const userData = await userRes.json();
+    const githubId = userData.id.toString();
+
+    const { growthData, radarData } = req.body;
+    
+    const updateData: any = {};
+    if (growthData !== undefined) updateData.growthData = growthData;
+    if (radarData !== undefined) updateData.radarData = radarData;
+
+    let user;
+    if (isDbConnected && usersCollection) {
+      const result = await usersCollection.findOneAndUpdate(
+        { githubId },
+        { $set: updateData },
+        { returnDocument: 'after', upsert: true }
+      );
+      user = result;
+    } else {
+      return res.status(503).json({ error: "Database not connected" });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error("Error saving user data:", error);
+    res.status(500).json({ error: "Failed to save user data" });
+  }
+});
+
 // GitHub API Routes
 app.get("/api/github/contents", async (req, res) => {
   try {
@@ -278,6 +288,8 @@ app.get("/api/github/contents", async (req, res) => {
        return;
     }
 
+    // Parse GitHub URL: https://github.com/owner/repo
+    // or https://github.com/owner/repo/tree/branch/path
     const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+)\/?(.*))?/);
     if (!match) {
        res.status(400).json({ error: "Invalid GitHub repository URL" });
@@ -341,4 +353,26 @@ app.get("/api/github/raw", async (req, res) => {
   }
 });
 
+// Only start the server if we are NOT on Vercel
+async function startServer() {
+  if (!process.env.VERCEL) {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      app.use(express.static("dist"));
+    }
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
+}
+
+startServer();
+
+// Export the app for Vercel serverless functions
 export default app;

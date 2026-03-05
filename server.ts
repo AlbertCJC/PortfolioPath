@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { fileURLToPath } from 'url';
@@ -20,6 +21,7 @@ let db: any = null;
 let usersCollection: any = null;
 
 let isDbConnected = false;
+let dbConnectionError: string | null = null;
 
 const app = express();
 const PORT = 3000;
@@ -39,16 +41,22 @@ if (process.env.MONGODB_URI) {
     await db.command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
     isDbConnected = true;
+    dbConnectionError = null;
   }).catch((err) => {
     console.error("MongoDB connection error:", err);
+    dbConnectionError = err.message;
   });
 } else {
   console.warn("MONGODB_URI not set. Database features will not work.");
+  dbConnectionError = "MONGODB_URI environment variable not set";
 }
 
 // DB Status Route
 app.get("/api/db-status", (req, res) => {
-  res.json({ connected: isDbConnected });
+  res.json({ 
+    connected: isDbConnected, 
+    error: dbConnectionError 
+  });
 });
 
 // GitHub OAuth Routes

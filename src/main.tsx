@@ -18,7 +18,11 @@ fetch('/api/db-status')
     if (data.connected) {
       console.log('%c[Database] Successfully connected to MongoDB', 'color: #10b981; font-weight: bold;');
     } else {
-      console.warn('%c[Database] Not connected to MongoDB. Using in-memory fallback.', 'color: #f59e0b; font-weight: bold;');
+      const errorMsg = data.error || 'Unknown error';
+      console.warn(`%c[Database] Not connected to MongoDB: ${errorMsg}`, 'color: #f59e0b; font-weight: bold;');
+      if (errorMsg.includes('MONGODB_URI')) {
+        console.info('To fix this, set the MONGODB_URI environment variable in your project settings.');
+      }
     }
   })
   .catch(err => console.warn('[Database] Backend API not reachable. Running in client-only mode.', err.message));
