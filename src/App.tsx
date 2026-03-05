@@ -56,29 +56,32 @@ function App() {
         const userRes = await fetch('/api/github/user');
         if (userRes.ok) {
           const userData = await userRes.json();
-          setUser(userData);
           
-          setIsLoadingRepos(true);
-          const reposRes = await fetch('/api/github/repositories');
-          if (reposRes.ok) {
-            const reposData = await reposRes.json();
-            setRepositories(reposData);
+          if (userData) {
+            setUser(userData);
+            
+            setIsLoadingRepos(true);
+            const reposRes = await fetch('/api/github/repositories');
+            if (reposRes.ok) {
+              const reposData = await reposRes.json();
+              setRepositories(reposData);
+            }
+            
+            const dataRes = await fetch('/api/user/data');
+            if (dataRes.ok) {
+              const data = await dataRes.json();
+              setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
+              setRadarData(data.radarData || null);
+            }
+            
+            setIsLoadingRepos(false);
+          } else {
+            // Not logged in
+            setUser(null);
+            setRepositories([]);
+            setGrowthData([]);
+            setRadarData(null);
           }
-          
-          const dataRes = await fetch('/api/user/data');
-          if (dataRes.ok) {
-            const data = await dataRes.json();
-            setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
-            setRadarData(data.radarData || null);
-          }
-          
-          setIsLoadingRepos(false);
-        } else if (userRes.status === 401) {
-          // Not logged in, clear user state
-          setUser(null);
-          setRepositories([]);
-          setGrowthData([]);
-          setRadarData(null);
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);

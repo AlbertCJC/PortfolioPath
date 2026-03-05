@@ -63,7 +63,7 @@ const UserSchema = new mongoose.Schema<IUser>({
   radarData: { type: mongoose.Schema.Types.Mixed, default: null }
 }, { collection: 'users', strict: false });
 
-const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>("User", UserSchema);
 
 // DB Status Route
 app.get("/api/db-status", async (req, res) => {
@@ -177,7 +177,7 @@ app.post("/api/auth/logout", (req, res) => {
 app.get("/api/github/user", async (req, res) => {
   const token = req.cookies.github_token;
   if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
+    res.json(null);
     return;
   }
 
