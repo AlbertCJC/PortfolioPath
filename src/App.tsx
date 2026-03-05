@@ -406,7 +406,7 @@ function App() {
                     <LoadingSpinner />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {repositories.map((repo) => (
                       <button
                         key={repo.id}
@@ -442,23 +442,6 @@ function App() {
                     )}
                   </div>
                 )}
-              </div>
-            )}
-
-            {reportData && (
-              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  Key Strengths
-                </h3>
-                <ul className="space-y-3">
-                  {reportData.code_review.positive_observations.map((item, i) => (
-                    <li key={i} className="flex items-start gap-3 text-slate-300">
-                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
           </motion.div>
