@@ -51,13 +51,19 @@ async function connectToDatabase() {
 }
 
 // User Schema
-const UserSchema = new mongoose.Schema({
+interface IUser {
+  githubId: string;
+  growthData: any[];
+  radarData: any;
+}
+
+const UserSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
   growthData: { type: mongoose.Schema.Types.Mixed, default: [] },
   radarData: { type: mongoose.Schema.Types.Mixed, default: null }
 }, { collection: 'users', strict: false });
 
-const User = mongoose.models.User || mongoose.model("User", UserSchema);
+const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
 // DB Status Route
 app.get("/api/db-status", async (req, res) => {
