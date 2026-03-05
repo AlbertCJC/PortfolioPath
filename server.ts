@@ -35,7 +35,7 @@ if (process.env.MONGODB_URI) {
     serverSelectionTimeoutMS: 5000,
   });
   dbClient.connect().then(async () => {
-    db = dbClient!.db("portfolio_db");
+    db = dbClient!.db("portfolio_path");
     usersCollection = db.collection("users");
     await db.command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -63,7 +63,7 @@ app.post("/api/test-mongo", async (req, res) => {
     });
     await client.connect();
     
-    const testDb = client.db("test_db");
+    const testDb = client.db("portfolio_path");
     const collection = testDb.collection("test_collection");
     
     const result = await collection.insertOne({
