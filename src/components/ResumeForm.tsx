@@ -6,10 +6,18 @@ interface ResumeFormProps {
   data: ResumeData;
   updateData: (data: ResumeData) => void;
   onAutoFill?: () => void;
+  onSave?: () => void;
 }
 
-export default function ResumeForm({ data, updateData, onAutoFill }: ResumeFormProps) {
+export default function ResumeForm({ data, updateData, onAutoFill, onSave }: ResumeFormProps) {
   const [isLocked, setIsLocked] = useState(false);
+
+  const toggleLock = () => {
+    if (!isLocked && onSave) {
+      onSave();
+    }
+    setIsLocked(!isLocked);
+  };
 
   const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -129,7 +137,7 @@ export default function ResumeForm({ data, updateData, onAutoFill }: ResumeFormP
           </span>
         </div>
         <button
-          onClick={() => setIsLocked(!isLocked)}
+          onClick={toggleLock}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
             isLocked
               ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'

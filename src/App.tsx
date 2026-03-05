@@ -166,6 +166,9 @@ function App() {
               const data = await dataRes.json();
               setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
               setRadarData(data.radarData || null);
+              if (data.resumeData) {
+                setResumeData(data.resumeData);
+              }
             }
             
             setIsLoadingRepos(false);
@@ -251,6 +254,22 @@ function App() {
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleSaveResume = async () => {
+    if (!user) return;
+    try {
+      await fetch('/api/user/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeData: resumeData
+        })
+      });
+      console.log('Resume saved successfully');
+    } catch (error) {
+      console.error('Failed to save resume:', error);
     }
   };
 
@@ -790,6 +809,7 @@ function App() {
                     data={resumeData} 
                     updateData={setResumeData} 
                     onAutoFill={handleAutoFill}
+                    onSave={handleSaveResume}
                   />
                 </div>
               </div>

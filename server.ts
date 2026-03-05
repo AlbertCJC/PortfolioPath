@@ -55,12 +55,14 @@ interface IUser {
   githubId: string;
   growthData: any[];
   radarData: any;
+  resumeData: any;
 }
 
 const UserSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
   growthData: { type: mongoose.Schema.Types.Mixed, default: [] },
-  radarData: { type: mongoose.Schema.Types.Mixed, default: null }
+  radarData: { type: mongoose.Schema.Types.Mixed, default: null },
+  resumeData: { type: mongoose.Schema.Types.Mixed, default: null }
 }, { collection: 'users', strict: false });
 
 const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>("User", UserSchema);
@@ -302,7 +304,8 @@ app.get("/api/user/data", async (req, res) => {
 
     res.json({
       growthData: user.growthData,
-      radarData: user.radarData
+      radarData: user.radarData,
+      resumeData: user.resumeData
     });
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -329,11 +332,12 @@ app.post("/api/user/data", async (req, res) => {
     const userData = await userRes.json();
     const githubId = userData.id.toString();
 
-    const { growthData, radarData } = req.body;
+    const { growthData, radarData, resumeData } = req.body;
     
     const updateData: any = {};
     if (growthData !== undefined) updateData.growthData = growthData;
     if (radarData !== undefined) updateData.radarData = radarData;
+    if (resumeData !== undefined) updateData.resumeData = resumeData;
 
     try {
       await connectToDatabase();
