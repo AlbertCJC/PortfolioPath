@@ -1,61 +1,54 @@
 import "dotenv/config";
 import express from "express";
-import { createServer as createViteServer } from "vite";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import cookieParser from "cookie-parser";
-import { MongoClient } from "mongodb";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// MongoDB Schema
-interface IUser {
-  githubId: string;
-  growthData: any;
-  radarData: any;
-}
-
-let dbClient: MongoClient | null = null;
-let db: any = null;
-let usersCollection: any = null;
-
-let isDbConnected = false;
-let dbConnectionError: string | null = null;
+import mongoose from "mongoose";
 
 const app = express();
-const PORT = 3000;
 app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(cookieParser());
 
-// Connect to MongoDB
-if (process.env.MONGODB_URI) {
-  dbClient = new MongoClient(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000,
-  });
-  dbClient.connect().then(async () => {
-    db = dbClient!.db("portfolio_path");
-    usersCollection = db.collection("users");
-    await db.command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    isDbConnected = true;
-    dbConnectionError = null;
-  }).catch((err) => {
-    console.error("MongoDB connection error:", err);
-    dbConnectionError = err.message;
-  });
-} else {
+// MongoDB Connection
+const MONGODB_URI = process.env.MONGODB_URI;
+let dbConnectionError: string | null = null;
+
+if (!MONGODB_URI) {
   console.warn("MONGODB_URI not set. Database features will not work.");
   dbConnectionError = "MONGODB_URI environment variable not set";
+} else {
+  // Connect to MongoDB
+  // In serverless, we want to reuse the connection if possible
+  if (mongoose.connection.readyState === 0) {
+    mongoose.connect(MONGODB_URI)
+      .then(() => {
+        console.log("Connected to MongoDB via Mongoose");
+        dbConnectionError = null;
+      })
+      .catch((err) => {
+        console.error("MongoDB connection error:", err);
+        dbConnectionError = err.message;
+      });
+  }
 }
+
+// User Schema
+const UserSchema = new mongoose.Schema({
+  githubId: { type: String, required: true, unique: true },
+  growthData: { type: mongoose.Schema.Types.Mixed, default: [] },
+  radarData: { type: mongoose.Schema.Types.Mixed, default: null }
+}, { collection: 'users', strict: false });
+
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
 // DB Status Route
 app.get("/api/db-status", (req, res) => {
+  const readyState = mongoose.connection.readyState;
+  const connected = readyState === 1;
+  
   res.json({ 
-    connected: isDbConnected, 
-    error: dbConnectionError 
+    connected: connected, 
+    error: dbConnectionError || (connected ? null : `Database not connected (readyState: ${readyState})`)
   });
 });
 
@@ -211,16 +204,13 @@ app.get("/api/user/data", async (req, res) => {
     const userData = await userRes.json();
     const githubId = userData.id.toString();
 
-    let user;
-    if (isDbConnected && usersCollection) {
-      user = await usersCollection.findOne({ githubId });
-      if (!user) {
-        const newUser = { githubId, growthData: [], radarData: null };
-        await usersCollection.insertOne(newUser);
-        user = newUser;
-      }
-    } else {
-      return res.status(503).json({ error: "Database not connected" });
+    if (mongoose.connection.readyState !== 1) {
+       return res.status(503).json({ error: "Database not connected" });
+    }
+
+    let user = await User.findOne({ githubId });
+    if (!user) {
+      user = await User.create({ githubId, growthData: [], radarData: null });
     }
 
     res.json({
@@ -258,17 +248,15 @@ app.post("/api/user/data", async (req, res) => {
     if (growthData !== undefined) updateData.growthData = growthData;
     if (radarData !== undefined) updateData.radarData = radarData;
 
-    let user;
-    if (isDbConnected && usersCollection) {
-      const result = await usersCollection.findOneAndUpdate(
-        { githubId },
-        { $set: updateData },
-        { returnDocument: 'after', upsert: true }
-      );
-      user = result;
-    } else {
+    if (mongoose.connection.readyState !== 1) {
       return res.status(503).json({ error: "Database not connected" });
     }
+
+    const user = await User.findOneAndUpdate(
+      { githubId },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
 
     res.json({ success: true, data: user });
   } catch (error) {
@@ -352,27 +340,6 @@ app.get("/api/github/raw", async (req, res) => {
     res.status(500).json({ error: error.message || "Failed to fetch raw content" });
   }
 });
-
-// Only start the server if we are NOT on Vercel
-async function startServer() {
-  if (!process.env.VERCEL) {
-    if (process.env.NODE_ENV !== "production") {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-    } else {
-      app.use(express.static("dist"));
-    }
-
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-    });
-  }
-}
-
-startServer();
 
 // Export the app for Vercel serverless functions
 export default app;
