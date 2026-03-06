@@ -88,12 +88,12 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .attr("markerHeight", 6)
       .attr("orient", "auto")
       .append("path")
-      .attr("fill", "#3b82f6") // Blue color matching the image
+      .attr("fill", "#10b981") // Emerald color
       .attr("d", "M0,-5L10,0L0,5");
 
     // Draw edges
     const edges = gDagre.edges().map(e => {
-      const edge = gDagre.edge(e);
+      const edge = gDagre.edge(e) as { points: { x: number; y: number }[]; label?: string };
       return {
         ...edge,
         source: e.v,
@@ -107,7 +107,7 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .curve(d3.curveBasis);
 
     const link = g.append("g")
-      .attr("stroke", "#3b82f6")
+      .attr("stroke", "#10b981")
       .attr("stroke-opacity", 0.6)
       .selectAll("path")
       .data(edges)
@@ -137,7 +137,7 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
 
     // Draw nodes
     const nodes = gDagre.nodes().map(v => {
-      const node = gDagre.node(v);
+      const node = gDagre.node(v) as { x: number; y: number; width: number; height: number; description?: string; group?: number; label?: string };
       return {
         id: v,
         ...node
@@ -156,34 +156,34 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .attr("x", -nodeWidth / 2)
       .attr("y", -nodeHeight / 2)
       .append("xhtml:div")
-      .attr("class", "w-full h-full flex flex-col items-center justify-center bg-white border-2 border-blue-400 rounded-xl shadow-sm p-2 transition-colors hover:bg-blue-50")
+      .attr("class", "w-full h-full flex flex-col items-center justify-center bg-slate-800 border-2 border-emerald-500/50 rounded-xl shadow-sm p-2 transition-colors hover:bg-slate-700")
       .html(d => `
-        <div class="text-xs font-semibold text-slate-700 text-center break-words w-full line-clamp-2">${d.id}</div>
+        <div class="text-xs font-semibold text-slate-200 text-center break-words w-full line-clamp-2">${d.id}</div>
       `);
 
     // Tooltip
     const tooltip = d3.select(containerRef.current)
       .append("div")
-      .attr("class", "absolute hidden bg-white text-slate-800 p-4 rounded-xl border border-blue-200 shadow-xl text-sm max-w-sm pointer-events-none z-50")
+      .attr("class", "absolute hidden bg-slate-800 text-slate-200 p-4 rounded-xl border border-slate-700 shadow-xl text-sm max-w-sm pointer-events-none z-50")
       .style("opacity", 0);
 
     node.on("mouseover", (event, d) => {
       tooltip.transition().duration(200).style("opacity", 1).style("display", "block");
       tooltip.html(`
-        <div class="font-bold text-blue-600 mb-1 text-base border-b border-blue-100 pb-1">${d.id}</div>
-        <div class="text-slate-600 mt-2">${d.description}</div>
+        <div class="font-bold text-emerald-400 mb-1 text-base border-b border-slate-700 pb-1">${d.id}</div>
+        <div class="text-slate-400 mt-2">${d.description}</div>
       `);
       
       const [x, y] = d3.pointer(event, containerRef.current);
       tooltip.style("left", (x + 15) + "px").style("top", (y - 15) + "px");
       
-      d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", true);
+      d3.select(event.currentTarget).select("div").classed("border-emerald-400 shadow-md", true);
     })
     .on("mouseout", (event) => {
       tooltip.transition().duration(500).style("opacity", 0).on("end", function() {
         d3.select(this).style("display", "none");
       });
-      d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", false);
+      d3.select(event.currentTarget).select("div").classed("border-emerald-400 shadow-md", false);
     })
     .on("mousemove", (event) => {
       const tooltipEl = tooltip.node() as HTMLElement;
@@ -229,9 +229,9 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
   }, [data]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-slate-50 rounded-2xl border border-slate-200">
+    <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-transparent rounded-2xl border border-slate-800/50">
       <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-      <div className="absolute bottom-4 left-4 text-xs text-slate-500 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+      <div className="absolute bottom-4 left-4 text-xs text-slate-400 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-800 shadow-sm">
         Scroll to zoom, drag to pan. Hover for details.
       </div>
     </div>

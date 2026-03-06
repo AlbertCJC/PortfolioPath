@@ -56,13 +56,15 @@ interface IUser {
   growthData: any[];
   radarData: any;
   resumeData: any;
+  learningPath: any;
 }
 
 const UserSchema = new mongoose.Schema<IUser>({
   githubId: { type: String, required: true, unique: true },
   growthData: { type: mongoose.Schema.Types.Mixed, default: [] },
   radarData: { type: mongoose.Schema.Types.Mixed, default: null },
-  resumeData: { type: mongoose.Schema.Types.Mixed, default: null }
+  resumeData: { type: mongoose.Schema.Types.Mixed, default: null },
+  learningPath: { type: mongoose.Schema.Types.Mixed, default: null }
 }, { collection: 'users', strict: false });
 
 const User = (mongoose.models.User as mongoose.Model<IUser>) || mongoose.model<IUser>("User", UserSchema);
@@ -306,7 +308,8 @@ app.get("/api/github/repo-tree", async (req, res) => {
         res.json({
           growthData: user.growthData,
           radarData: user.radarData,
-          resumeData: user.resumeData
+          resumeData: user.resumeData,
+          learningPath: user.learningPath
         });
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -333,7 +336,7 @@ app.get("/api/github/repo-tree", async (req, res) => {
         const userData = await userRes.json();
         const githubId = userData.id.toString();
     
-        const { growthData, radarData, resumeData } = req.body;
+        const { growthData, radarData, resumeData, learningPath } = req.body;
         
         console.log(`[API] Saving user data for ${githubId}. ResumeData present: ${resumeData !== undefined}`);
     
@@ -341,6 +344,7 @@ app.get("/api/github/repo-tree", async (req, res) => {
         if (growthData !== undefined) updateData.growthData = growthData;
         if (radarData !== undefined) updateData.radarData = radarData;
         if (resumeData !== undefined) updateData.resumeData = resumeData;
+        if (learningPath !== undefined) updateData.learningPath = learningPath;
     
         try {
           await connectToDatabase();

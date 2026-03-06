@@ -11,6 +11,7 @@ interface ToastProps {
   message: string;
   onClose: () => void;
   duration?: number;
+  key?: string;
 }
 
 const toastConfig = {

@@ -66,6 +66,7 @@ function App() {
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [growthData, setGrowthData] = useState<any[]>([]);
   const [radarData, setRadarData] = useState<any>(null);
+  const [learningPathData, setLearningPathData] = useState<any>(null);
 
   // Resume Generator State
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
@@ -146,6 +147,7 @@ function App() {
               console.log("Fetched user data from DB:", data);
               setGrowthData(Array.isArray(data.growthData) ? data.growthData : []);
               setRadarData(data.radarData || null);
+              setLearningPathData(data.learningPath || null);
               if (data.resumeData) {
                 console.log("Applying saved resume data");
                 setResumeData(data.resumeData);
@@ -161,6 +163,7 @@ function App() {
             setRepositories([]);
             setGrowthData([]);
             setRadarData(null);
+            setLearningPathData(null);
           }
         }
       } catch (error) {
@@ -234,6 +237,7 @@ function App() {
       setRepositories([]);
       setGrowthData([]);
       setRadarData(null);
+      setLearningPathData(null);
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
@@ -295,13 +299,15 @@ function App() {
         
         setGrowthData(newGrowthData);
         setRadarData(newRadarData);
+        setLearningPathData(result.learning_path);
         
         await fetch('/api/user/data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             growthData: newGrowthData,
-            radarData: newRadarData
+            radarData: newRadarData,
+            learningPath: result.learning_path
           })
         });
       }
@@ -367,8 +373,9 @@ function App() {
     if (!reportData && activeTab !== 'dashboard' && activeTab !== 'resume') {
       const hasRadarData = activeTab === 'radar' && radarData && Object.keys(radarData).length > 0;
       const hasGrowthData = activeTab === 'growth' && growthData && growthData.length > 0;
+      const hasLearningPathData = activeTab === 'learning' && learningPathData;
       
-      if (!hasRadarData && !hasGrowthData) {
+      if (!hasRadarData && !hasGrowthData && !hasLearningPathData) {
         return (
           <div className="flex-1 flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
             <Code className="w-16 h-16 opacity-20" />
@@ -698,8 +705,8 @@ function App() {
         );
       }
       case 'learning': {
-        // Fallback data in case the user hasn't re-analyzed since the schema update
-        const learningPath = reportData.learning_path || {
+        // Use learningPathData from state if available, otherwise reportData, otherwise fallback
+        const learningPath = learningPathData || reportData?.learning_path || {
           focus_area: "Full-Stack Development",
           reasoning: "Based on your code, you have a good foundation but could benefit from understanding the full request lifecycle.",
           roadmap: [
@@ -898,13 +905,13 @@ function App() {
         );
       case 'architecture':
         return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full space-y-8 h-full flex flex-col items-center">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full h-full flex flex-col">
             <div className="mb-8 shrink-0 w-full">
               <h1 className="text-3xl font-bold text-white tracking-tight">Architecture Graph</h1>
               <p className="text-slate-400">Visual representation of your project's components and their relationships.</p>
             </div>
             
-            <div className="w-full max-w-[900px] aspect-square">
+            <div className="w-full flex-1 min-h-0">
               {reportData.architecture_graph ? (
                 <ArchitectureGraph data={reportData.architecture_graph} />
               ) : (
