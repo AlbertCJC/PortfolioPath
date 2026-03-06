@@ -44,9 +44,10 @@ const navItems: { id: Tab; label: string; icon: React.ElementType }[] = [
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('analyzer');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [reportData, setReportData] = useState<AnalysisResult | null>(null);
+  const [analyzedRepoName, setAnalyzedRepoName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [repoUrl, setRepoUrl] = useState('');
   
@@ -180,6 +181,7 @@ function App() {
       }
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
         await fetchUserData();
+        setActiveTab('analyzer');
         navigate('/dashboard');
       }
     };
@@ -187,6 +189,7 @@ function App() {
     const handleStorage = async (event: StorageEvent) => {
       if (event.key === 'oauth_success') {
         await fetchUserData();
+        setActiveTab('analyzer');
         navigate('/dashboard');
       }
     };
@@ -202,6 +205,7 @@ function App() {
 
   useEffect(() => {
     if (user && location.pathname === '/') {
+      setActiveTab('analyzer');
       navigate('/dashboard');
     }
   }, [user, location.pathname, navigate]);
@@ -269,15 +273,17 @@ function App() {
     }
   };
 
-  const handleAnalyze = async (code: string, source: string) => {
+  const handleAnalyze = async (code: string, source: string, repoName?: string) => {
     setIsAnalyzing(true);
     setError(null);
-    navigate('/dashboard'); // Switch to dashboard view to show loading spinner
+    setActiveTab('analyzer'); // Switch to analyzer view to show loading spinner
+    navigate('/dashboard');
     
     try {
       const result = await analyzeCode(code);
       setReportData(result);
-      setActiveTab('dashboard'); // Switch to dashboard on success
+      setAnalyzedRepoName(repoName || source);
+      setActiveTab('analyzer'); // Switch to analyzer on success
       
       if (user) {
         const newGrowthEntry = {
@@ -320,15 +326,16 @@ function App() {
     }
   };
 
-  const handleGithubAudit = async (url: string) => {
-    if (!url) return;
+  const handleGithubAudit = async (repo: any) => {
+    if (!repo || !repo.html_url) return;
     setIsAnalyzing(true);
     setError(null);
-    navigate('/dashboard'); // Switch to dashboard view to show loading spinner
+    setActiveTab('analyzer'); // Switch to analyzer view to show loading spinner
+    navigate('/dashboard');
     
     try {
-      const code = await fetchGithubRepo(url);
-      await handleAnalyze(code, url);
+      const code = await fetchGithubRepo(repo.html_url);
+      await handleAnalyze(code, repo.html_url, repo.name);
     } catch (err: any) {
       setError(err.message || "Failed to fetch GitHub repository.");
       setIsAnalyzing(false);
@@ -342,7 +349,7 @@ function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        handleAnalyze(e.target.result as string, file.name);
+        handleAnalyze(e.target.result as string, file.name, file.name);
       }
     };
     reader.readAsText(file);
@@ -370,7 +377,7 @@ function App() {
       );
     }
 
-    if (!reportData && activeTab !== 'dashboard' && activeTab !== 'resume') {
+    if (!reportData && activeTab !== 'dashboard' && activeTab !== 'resume' && activeTab !== 'analyzer') {
       const hasRadarData = activeTab === 'radar' && radarData && Object.keys(radarData).length > 0;
       const hasGrowthData = activeTab === 'growth' && growthData && growthData.length > 0;
       const hasLearningPathData = activeTab === 'learning' && learningPathData;
@@ -392,13 +399,130 @@ function App() {
     }
 
     if (activeTab === 'analyzer') {
+      if (!reportData) {
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto w-full space-y-8">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-white tracking-tight">Code Analyzer</h1>
+              <p className="text-slate-400">Select a repository to analyze.</p>
+            </div>
+
+            {user && (
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Github className="w-5 h-5 text-slate-400" />
+                    Your Repositories
+                  </h3>
+                </div>
+                {isLoadingRepos ? (
+                  <div className="flex justify-center py-12">
+                    <LoadingSpinner />
+                  </div>
+                ) : (
+                  <>
+                    {selectedRepo && (
+                      <div className="bg-slate-800/80 border border-emerald-500/50 rounded-xl p-6 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-1">Analyze {selectedRepo.name}?</h3>
+                          <p className="text-sm text-slate-400">This will fetch the repository code and generate a comprehensive audit report.</p>
+                        </div>
+                        <div className="flex gap-3 w-full md:w-auto">
+                          <button 
+                            onClick={() => setSelectedRepo(null)}
+                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={() => {
+                              handleGithubAudit(selectedRepo);
+                              setSelectedRepo(null);
+                            }}
+                            disabled={isAnalyzing}
+                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {isAnalyzing ? <LoadingSpinner size="sm" /> : <Target size={16} />}
+                            Analyze
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {repositories.map((repo) => {
+                        const isAnalyzed = growthData.some(g => g.source === repo.html_url);
+                        const isSelected = selectedRepo?.id === repo.id;
+                        
+                        return (
+                          <button
+                            key={repo.id}
+                            onClick={() => !isAnalyzed && setSelectedRepo(repo)}
+                            disabled={isAnalyzing || isAnalyzed}
+                            className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left relative overflow-hidden ${
+                              isSelected 
+                                ? 'bg-slate-800 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+                                : isAnalyzed
+                                  ? 'bg-slate-900/50 border-slate-800/50 opacity-60 cursor-not-allowed'
+                                  : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 group'
+                            }`}
+                          >
+                            {isAnalyzed && (
+                              <div className="absolute top-0 right-0 bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
+                                Analyzed
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 mb-2 w-full pr-12">
+                              <Github className={`w-4 h-4 transition-colors ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-400 group-hover:text-emerald-400'}`} />
+                              <span className={`font-bold truncate ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-200'}`}>{repo.name}</span>
+                            </div>
+                            {repo.description && (
+                              <p className={`text-sm line-clamp-2 mb-3 ${isAnalyzed ? 'text-slate-600' : 'text-slate-400'}`}>{repo.description}</p>
+                            )}
+                            <div className={`flex items-center gap-4 mt-auto text-xs ${isAnalyzed ? 'text-slate-600' : 'text-slate-500'}`}>
+                              {repo.language && (
+                                <span className="flex items-center gap-1">
+                                  <span className={`w-2 h-2 rounded-full ${isAnalyzed ? 'bg-slate-600' : 'bg-blue-400'}`}></span>
+                                  {repo.language}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Star className="w-3 h-3" />
+                                {repo.stargazers_count}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {repositories.length === 0 && (
+                        <div className="col-span-full text-center py-8 text-slate-500">
+                          No repositories found.
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </motion.div>
+        );
+      }
+
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl mx-auto w-full space-y-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Code Analyzer</h1>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Analysis Report: <span className="text-emerald-400">{analyzedRepoName}</span>
+              </h1>
               <p className="text-slate-400 mt-1">Detailed code review and architectural feedback.</p>
             </div>
+            <button 
+              onClick={() => { setReportData(null); setAnalyzedRepoName(null); }}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Target size={16} />
+              Analyze New Project
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -501,106 +625,48 @@ function App() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
               <p className="text-slate-400">
-                {reportData ? "Overview of your latest code audit." : "Select a repository to analyze or view your stats."}
+                Welcome back! Here is a quick overview of your progress.
               </p>
             </div>
 
-            {user && (
-              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8 mb-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Github className="w-5 h-5 text-slate-400" />
-                    Your Repositories
-                  </h3>
-                </div>
-                {isLoadingRepos ? (
-                  <div className="flex justify-center py-12">
-                    <LoadingSpinner />
-                  </div>
-                ) : (
-                  <>
-                    {selectedRepo && (
-                      <div className="bg-slate-800/80 border border-emerald-500/50 rounded-xl p-6 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div>
-                          <h3 className="text-lg font-bold text-white mb-1">Analyze {selectedRepo.name}?</h3>
-                          <p className="text-sm text-slate-400">This will fetch the repository code and generate a comprehensive audit report.</p>
-                        </div>
-                        <div className="flex gap-3 w-full md:w-auto">
-                          <button 
-                            onClick={() => setSelectedRepo(null)}
-                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button 
-                            onClick={() => {
-                              handleGithubAudit(selectedRepo.html_url);
-                              setSelectedRepo(null);
-                            }}
-                            disabled={isAnalyzing}
-                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                          >
-                            {isAnalyzing ? <LoadingSpinner size="sm" /> : <Target size={16} />}
-                            Analyze
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {repositories.map((repo) => {
-                        const isAnalyzed = growthData.some(g => g.source === repo.html_url);
-                        const isSelected = selectedRepo?.id === repo.id;
-                        
-                        return (
-                          <button
-                            key={repo.id}
-                            onClick={() => !isAnalyzed && setSelectedRepo(repo)}
-                            disabled={isAnalyzing || isAnalyzed}
-                            className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left relative overflow-hidden ${
-                              isSelected 
-                                ? 'bg-slate-800 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
-                                : isAnalyzed
-                                  ? 'bg-slate-900/50 border-slate-800/50 opacity-60 cursor-not-allowed'
-                                  : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 group'
-                            }`}
-                          >
-                            {isAnalyzed && (
-                              <div className="absolute top-0 right-0 bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
-                                Analyzed
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 mb-2 w-full pr-12">
-                              <Github className={`w-4 h-4 transition-colors ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-400 group-hover:text-emerald-400'}`} />
-                              <span className={`font-bold truncate ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-200'}`}>{repo.name}</span>
-                            </div>
-                            {repo.description && (
-                              <p className={`text-sm line-clamp-2 mb-3 ${isAnalyzed ? 'text-slate-600' : 'text-slate-400'}`}>{repo.description}</p>
-                            )}
-                            <div className={`flex items-center gap-4 mt-auto text-xs ${isAnalyzed ? 'text-slate-600' : 'text-slate-500'}`}>
-                              {repo.language && (
-                                <span className="flex items-center gap-1">
-                                  <span className={`w-2 h-2 rounded-full ${isAnalyzed ? 'bg-slate-600' : 'bg-blue-400'}`}></span>
-                                  {repo.language}
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1">
-                                <Star className="w-3 h-3" />
-                                {repo.stargazers_count}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                      {repositories.length === 0 && (
-                        <div className="col-span-full text-center py-8 text-slate-500">
-                          No repositories found.
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+                <Target className="w-10 h-10 text-emerald-400 mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-1">{growthData.length}</h3>
+                <p className="text-slate-400 text-sm">Projects Analyzed</p>
               </div>
-            )}
+              
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+                <TrendingUp className="w-10 h-10 text-blue-400 mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-1">
+                  {growthData.length > 0 ? Math.round(growthData.reduce((acc, curr) => acc + curr.score, 0) / growthData.length) : 0}
+                </h3>
+                <p className="text-slate-400 text-sm">Average Score</p>
+              </div>
+
+              <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+                <Award className="w-10 h-10 text-amber-400 mb-4" />
+                <h3 className="text-3xl font-bold text-white mb-1">
+                  {growthData.length > 0 ? Math.max(...growthData.map(g => g.score)) : 0}
+                </h3>
+                <p className="text-slate-400 text-sm">Highest Score</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
+              <Code className="w-16 h-16 text-slate-600 mb-6" />
+              <h2 className="text-2xl font-bold text-white mb-4">Ready to analyze more code?</h2>
+              <p className="text-slate-400 mb-8 max-w-md">
+                Head over to the Code Analyzer to select a repository and get detailed feedback, architectural insights, and resume bullet points.
+              </p>
+              <button
+                onClick={() => setActiveTab('analyzer')}
+                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              >
+                <Code size={20} />
+                Go to Code Analyzer
+              </button>
+            </div>
           </motion.div>
         );
       case 'radar': {
