@@ -71,6 +71,7 @@ function App() {
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
   const [template, setTemplate] = useState<TemplateType>('professional');
   const [resumeActiveTab, setResumeActiveTab] = useState<'edit' | 'preview'>('edit');
+  const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const handleAutoFill = () => {
@@ -510,41 +511,86 @@ function App() {
                     <LoadingSpinner />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {repositories.map((repo) => (
-                      <button
-                        key={repo.id}
-                        onClick={() => handleGithubAudit(repo.html_url)}
-                        disabled={isAnalyzing}
-                        className="flex flex-col items-start p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed group"
-                      >
-                        <div className="flex items-center gap-2 mb-2 w-full">
-                          <Github className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition-colors" />
-                          <span className="font-bold text-slate-200 truncate">{repo.name}</span>
+                  <>
+                    {selectedRepo && (
+                      <div className="bg-slate-800/80 border border-emerald-500/50 rounded-xl p-6 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-white mb-1">Analyze {selectedRepo.name}?</h3>
+                          <p className="text-sm text-slate-400">This will fetch the repository code and generate a comprehensive audit report.</p>
                         </div>
-                        {repo.description && (
-                          <p className="text-sm text-slate-400 line-clamp-2 mb-3">{repo.description}</p>
-                        )}
-                        <div className="flex items-center gap-4 mt-auto text-xs text-slate-500">
-                          {repo.language && (
-                            <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                              {repo.language}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <Star className="w-3 h-3" />
-                            {repo.stargazers_count}
-                          </span>
+                        <div className="flex gap-3 w-full md:w-auto">
+                          <button 
+                            onClick={() => setSelectedRepo(null)}
+                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={() => {
+                              handleGithubAudit(selectedRepo.html_url);
+                              setSelectedRepo(null);
+                            }}
+                            disabled={isAnalyzing}
+                            className="flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {isAnalyzing ? <LoadingSpinner size="sm" /> : <Target size={16} />}
+                            Analyze
+                          </button>
                         </div>
-                      </button>
-                    ))}
-                    {repositories.length === 0 && (
-                      <div className="col-span-full text-center py-8 text-slate-500">
-                        No repositories found.
                       </div>
                     )}
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {repositories.map((repo) => {
+                        const isAnalyzed = growthData.some(g => g.source === repo.html_url);
+                        const isSelected = selectedRepo?.id === repo.id;
+                        
+                        return (
+                          <button
+                            key={repo.id}
+                            onClick={() => !isAnalyzed && setSelectedRepo(repo)}
+                            disabled={isAnalyzing || isAnalyzed}
+                            className={`flex flex-col items-start p-4 rounded-xl border transition-all text-left relative overflow-hidden ${
+                              isSelected 
+                                ? 'bg-slate-800 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+                                : isAnalyzed
+                                  ? 'bg-slate-900/50 border-slate-800/50 opacity-60 cursor-not-allowed'
+                                  : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 group'
+                            }`}
+                          >
+                            {isAnalyzed && (
+                              <div className="absolute top-0 right-0 bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
+                                Analyzed
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 mb-2 w-full pr-12">
+                              <Github className={`w-4 h-4 transition-colors ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-400 group-hover:text-emerald-400'}`} />
+                              <span className={`font-bold truncate ${isSelected ? 'text-emerald-400' : isAnalyzed ? 'text-slate-500' : 'text-slate-200'}`}>{repo.name}</span>
+                            </div>
+                            {repo.description && (
+                              <p className={`text-sm line-clamp-2 mb-3 ${isAnalyzed ? 'text-slate-600' : 'text-slate-400'}`}>{repo.description}</p>
+                            )}
+                            <div className={`flex items-center gap-4 mt-auto text-xs ${isAnalyzed ? 'text-slate-600' : 'text-slate-500'}`}>
+                              {repo.language && (
+                                <span className="flex items-center gap-1">
+                                  <span className={`w-2 h-2 rounded-full ${isAnalyzed ? 'bg-slate-600' : 'bg-blue-400'}`}></span>
+                                  {repo.language}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Star className="w-3 h-3" />
+                                {repo.stargazers_count}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {repositories.length === 0 && (
+                        <div className="col-span-full text-center py-8 text-slate-500">
+                          No repositories found.
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -896,8 +942,20 @@ function App() {
                         <XAxis dataKey="displayDate" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
                         <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
                         <Tooltip 
-                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                          itemStyle={{ color: '#10b981' }}
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              const projectName = data.source ? data.source.split('/').pop() : 'Unknown Project';
+                              return (
+                                <div className="bg-slate-800 border border-slate-700 p-3 rounded-lg shadow-xl">
+                                  <p className="text-slate-400 text-xs mb-1">{label}</p>
+                                  <p className="text-white font-bold mb-1">{projectName}</p>
+                                  <p className="text-emerald-400 font-medium">Score: {data.score}</p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
                         />
                         <Line type="monotone" dataKey="score" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2 }} activeDot={{ r: 8 }} />
                       </LineChart>
