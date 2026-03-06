@@ -1,13 +1,18 @@
 export interface ResumeData {
   personalInfo: {
-    fullName: string;
+    firstName: string;
+    lastName: string;
     email: string;
     phone: string;
-    location: string;
+    address: string;
+    cityState: string;
+    country: string;
     website: string;
     summary: string;
     jobTitle: string;
     profileImage?: string;
+    fullName?: string; // For backward compatibility
+    location?: string; // For backward compatibility
   };
   experience: ExperienceItem[];
   education: EducationItem[];
@@ -39,10 +44,13 @@ export type TemplateType = 'professional' | 'elegant' | 'bold' | 'creative';
 
 export const initialResumeData: ResumeData = {
   personalInfo: {
-    fullName: 'Richard Sanchez',
+    firstName: 'Richard',
+    lastName: 'Sanchez',
     email: 'hello@reallygreatsite.com',
     phone: '+123-456-7890',
-    location: '123 Anywhere St., Any City',
+    address: '123 Anywhere St.',
+    cityState: 'Any City, ST',
+    country: 'United States',
     website: 'www.reallygreatsite.com',
     summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum sit amet quam rhoncus, egestas dui eget, malesuada justo. Ut aliquam augue.',
     jobTitle: 'Product Designer',

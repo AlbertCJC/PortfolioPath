@@ -76,13 +76,6 @@ function App() {
   const handleAutoFill = () => {
     const newSkills = new Set(resumeData.skills);
 
-    // Add from repositories
-    if (repositories.length > 0) {
-      repositories.forEach(repo => {
-        if (repo.language) newSkills.add(repo.language);
-      });
-    }
-
     // Add from current analysis
     if (reportData?.tech_stack?.language) {
       newSkills.add(reportData.tech_stack.language);
@@ -139,38 +132,11 @@ function App() {
           if (userData) {
             setUser(userData);
             
-            // Pre-populate resume data with GitHub profile info
-            setResumeData(prev => ({
-              ...prev,
-              personalInfo: {
-                ...prev.personalInfo,
-                fullName: userData.name || userData.login || prev.personalInfo.fullName,
-                email: userData.email || prev.personalInfo.email,
-                location: userData.location || prev.personalInfo.location,
-                website: userData.blog || userData.html_url || prev.personalInfo.website,
-                summary: userData.bio || prev.personalInfo.summary,
-                profileImage: userData.avatar_url || prev.personalInfo.profileImage,
-              }
-            }));
-            
             setIsLoadingRepos(true);
             const reposRes = await fetch('/api/github/repositories');
             if (reposRes.ok) {
               const reposData = await reposRes.json();
               setRepositories(reposData);
-
-              // Auto-fill skills from repositories immediately
-              const repoSkills = new Set<string>();
-              reposData.forEach((repo: any) => {
-                if (repo.language) repoSkills.add(repo.language);
-              });
-              
-              if (repoSkills.size > 0) {
-                setResumeData(prev => ({
-                  ...prev,
-                  skills: Array.from(new Set([...prev.skills, ...Array.from(repoSkills)]))
-                }));
-              }
             }
             
             const dataRes = await fetch('/api/user/data');

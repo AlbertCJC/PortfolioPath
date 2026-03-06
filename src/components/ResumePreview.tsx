@@ -9,6 +9,14 @@ interface ResumePreviewProps {
 export default function ResumePreview({ data, template }: ResumePreviewProps) {
   const { personalInfo, experience, education, skills, languages, certifications } = data;
 
+  const fullName = personalInfo.firstName || personalInfo.lastName 
+    ? `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() 
+    : personalInfo.fullName || '';
+
+  const location = personalInfo.address || personalInfo.cityState || personalInfo.country
+    ? [personalInfo.address, personalInfo.cityState, personalInfo.country].filter(Boolean).join(', ')
+    : personalInfo.location || '';
+
   const renderProfessional = () => (
     <div className="w-full h-full bg-white flex flex-col font-sans text-slate-900">
       {/* Header Section */}
@@ -16,16 +24,16 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
         <div className="w-1/3 bg-white relative flex justify-center items-center">
            <div className="w-40 h-40 rounded-full border-4 border-slate-900 overflow-hidden z-10 bg-gray-200">
             {personalInfo.profileImage ? (
-              <img src={personalInfo.profileImage} alt={personalInfo.fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <img src={personalInfo.profileImage} alt={fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-4xl">{personalInfo.fullName.charAt(0)}</div>
+              <div className="w-full h-full flex items-center justify-center text-slate-400 text-4xl">{fullName.charAt(0)}</div>
             )}
            </div>
            {/* Decorative circle part */}
            <div className="absolute top-0 left-0 w-full h-1/2 bg-white"></div>
         </div>
         <div className="w-2/3 flex flex-col justify-center pl-8 pr-8">
-            <h1 className="text-5xl font-bold text-slate-900 uppercase tracking-tight">{personalInfo.fullName}</h1>
+            <h1 className="text-5xl font-bold text-slate-900 uppercase tracking-tight">{fullName}</h1>
             <p className="text-2xl text-slate-700 mt-2 font-light">{personalInfo.jobTitle}</p>
         </div>
       </div>
@@ -53,10 +61,10 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
                         <span className="text-sm text-slate-700 break-all">{personalInfo.email}</span>
                     </div>
                 )}
-                {personalInfo.location && (
+                {location && (
                     <div className="flex items-center gap-3">
                         <div className="bg-slate-800 text-white p-2 rounded-full"><MapPin size={14} /></div>
-                        <span className="text-sm text-slate-700">{personalInfo.location}</span>
+                        <span className="text-sm text-slate-700">{location}</span>
                     </div>
                 )}
             </section>
@@ -150,14 +158,14 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
         <div className="flex justify-between items-start mb-12">
              <div className="w-48 h-48 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200 mt-8">
                 {personalInfo.profileImage ? (
-                  <img src={personalInfo.profileImage} alt={personalInfo.fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={personalInfo.profileImage} alt={fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">{personalInfo.fullName.charAt(0)}</div>
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">{fullName.charAt(0)}</div>
                 )}
              </div>
              <div className="text-right mt-8">
-                 <h1 className="text-5xl font-bold text-black uppercase tracking-widest mb-2">{personalInfo.fullName.split(' ')[0]}</h1>
-                 <h1 className="text-5xl font-bold text-black uppercase tracking-widest mb-4">{personalInfo.fullName.split(' ').slice(1).join(' ')}</h1>
+                 <h1 className="text-5xl font-bold text-black uppercase tracking-widest mb-2">{fullName.split(' ')[0]}</h1>
+                 <h1 className="text-5xl font-bold text-black uppercase tracking-widest mb-4">{fullName.split(' ').slice(1).join(' ')}</h1>
                  <p className="text-xl text-black uppercase tracking-[0.3em]">{personalInfo.jobTitle}</p>
              </div>
         </div>
@@ -256,10 +264,10 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
                                 <span>{personalInfo.website}</span>
                             </div>
                         )}
-                        {personalInfo.location && (
+                        {location && (
                             <div className="flex items-center gap-3">
                                 <div className="bg-black text-white p-1 rounded-full"><MapPin size={12} /></div>
-                                <span>{personalInfo.location}</span>
+                                <span>{location}</span>
                             </div>
                         )}
                     </div>
@@ -279,12 +287,12 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
         <div className="bg-amber-500 p-8 flex flex-col items-center text-center h-[60%]">
             <div className="w-48 h-56 bg-gray-200 mb-8 overflow-hidden shadow-lg">
                 {personalInfo.profileImage ? (
-                  <img src={personalInfo.profileImage} alt={personalInfo.fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={personalInfo.profileImage} alt={fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">{personalInfo.fullName.charAt(0)}</div>
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">{fullName.charAt(0)}</div>
                 )}
             </div>
-            <h1 className="text-5xl font-bold text-[#451a03] mb-2 leading-tight">{personalInfo.fullName}</h1>
+            <h1 className="text-5xl font-bold text-[#451a03] mb-2 leading-tight">{fullName}</h1>
             <p className="text-2xl text-[#451a03] opacity-80">{personalInfo.jobTitle}</p>
         </div>
         
@@ -292,12 +300,12 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
         <div className="bg-[#451a03] p-8 flex-1 text-white">
             <h3 className="text-2xl font-bold uppercase mb-8 border-b border-white/20 pb-2">Contact Me</h3>
             <div className="space-y-6">
-                {personalInfo.location && (
+                {location && (
                     <div className="flex items-start gap-4">
                         <div className="bg-white text-[#451a03] p-2 rounded-full mt-1"><MapPin size={16} /></div>
                         <div>
                             <p className="font-bold text-sm opacity-80">Address</p>
-                            <p className="text-sm">{personalInfo.location}</p>
+                            <p className="text-sm">{location}</p>
                         </div>
                     </div>
                 )}
@@ -393,18 +401,18 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
             {personalInfo.profileImage ? (
               <img 
                 src={personalInfo.profileImage} 
-                alt={personalInfo.fullName} 
+                alt={fullName} 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
             ) : (
                <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl font-light">
-                 {personalInfo.fullName.charAt(0)}
+                 {fullName.charAt(0)}
                </div>
             )}
           </div>
           <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-wide leading-tight mb-2">
-            {personalInfo.fullName}
+            {fullName}
           </h1>
           <p className="text-sm text-gray-600 uppercase tracking-widest font-medium">
             {personalInfo.jobTitle}
@@ -412,10 +420,10 @@ export default function ResumePreview({ data, template }: ResumePreviewProps) {
         </div>
 
         <div className="space-y-4 text-sm text-gray-600">
-          {personalInfo.location && (
+          {location && (
             <div className="flex items-center gap-3">
               <div className="w-8 flex justify-center"><MapPin size={16} /></div>
-              <span>{personalInfo.location}</span>
+              <span>{location}</span>
             </div>
           )}
           {personalInfo.email && (

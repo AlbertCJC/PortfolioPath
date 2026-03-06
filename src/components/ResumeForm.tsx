@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ResumeData } from '../resumeTypes';
-import { Plus, Trash2, Save, Edit, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Save, Edit, Sparkles, User } from 'lucide-react';
 
 interface ResumeFormProps {
   data: ResumeData;
@@ -158,173 +158,160 @@ export default function ResumeForm({ data, updateData, onAutoFill, onSave }: Res
       </div>
       <fieldset disabled={isLocked} className="min-w-0 w-full border-0 p-0 m-0 disabled:opacity-70">
       {/* Personal Information Section */}
-      <div className={sectionHeaderClass}>
-        <h2 className={sectionTitleClass}>Personal Information</h2>
-      </div>
-      
-      <div className="divide-y divide-slate-800">
-          {/* Full Name */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Full Name
+      <div className="p-6 border-b border-slate-800">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-slate-100 mb-1">Personal Details</h2>
+          <p className="text-sm text-slate-400">Users who added phone number and email received 64% more positive feedback from recruiters.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Job Target */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Job Target</label>
+            <input
+              type="text"
+              name="jobTitle"
+              placeholder="The role you want"
+              value={data.personalInfo.jobTitle}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
+          </div>
+
+          {/* Upload Photo */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-slate-800/50 rounded-md flex items-center justify-center overflow-hidden shrink-0">
+              {data.personalInfo.profileImage ? (
+                <img src={data.personalInfo.profileImage} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="text-slate-400" size={24} />
+              )}
             </div>
-            <div className="p-2">
-              <input
-                type="text"
-                name="fullName"
-                placeholder="Full Name"
-                value={data.personalInfo.fullName}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
+            <div className="flex flex-col">
+              <label className="text-blue-500 text-sm font-medium cursor-pointer hover:text-blue-400 transition-colors">
+                Upload photo
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+              {data.personalInfo.profileImage && (
+                <button 
+                  onClick={() => updateData({ ...data, personalInfo: { ...data.personalInfo, profileImage: '' } })}
+                  className="text-xs text-red-400 hover:text-red-300 text-left mt-1"
+                >
+                  Remove photo
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Job Title */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Job Title
-            </div>
-            <div className="p-2">
-              <input
-                type="text"
-                name="jobTitle"
-                placeholder="Job Title"
-                value={data.personalInfo.jobTitle}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
-            </div>
+          {/* First Name */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">First Name</label>
+            <input
+              type="text"
+              name="firstName"
+              value={data.personalInfo.firstName || ''}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
-          {/* Profile Image */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Profile Image
-            </div>
-            <div className="p-4">
-              <div className="flex items-center gap-4">
-                {data.personalInfo.profileImage && (
-                  <div className="relative w-16 h-16 shrink-0">
-                    <img 
-                      src={data.personalInfo.profileImage} 
-                      alt="Profile" 
-                      className="w-full h-full rounded-full object-cover border border-slate-700"
-                    />
-                    <button
-                      onClick={() => updateData({
-                        ...data,
-                        personalInfo: { ...data.personalInfo, profileImage: '' }
-                      })}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 transition-colors"
-                      title="Remove image"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
-                )}
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="block w-full text-sm text-slate-400
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-full file:border-0
-                      file:text-sm file:font-semibold
-                      file:bg-emerald-500/10 file:text-emerald-400
-                      hover:file:bg-emerald-500/20
-                      cursor-pointer"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">Upload a photo (JPG, PNG)</p>
-                </div>
-              </div>
-            </div>
+          {/* Last Name */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Last Name</label>
+            <input
+              type="text"
+              name="lastName"
+              value={data.personalInfo.lastName || ''}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
           {/* Email */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Email
-            </div>
-            <div className="p-2">
-              <input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={data.personalInfo.email}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
-            </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Email*</label>
+            <input
+              type="email"
+              name="email"
+              value={data.personalInfo.email}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
           {/* Phone */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Phone
-            </div>
-            <div className="p-2">
-              <input
-                type="tel"
-                name="phone"
-                placeholder="Phone"
-                value={data.personalInfo.phone}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
-            </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Phone</label>
+            <input
+              type="tel"
+              name="phone"
+              value={data.personalInfo.phone}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
-          {/* Location */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Location
-            </div>
-            <div className="p-2">
-              <input
-                type="text"
-                name="location"
-                placeholder="Location (City, Country)"
-                value={data.personalInfo.location}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
-            </div>
+          {/* Address */}
+          <div className="md:col-span-2">
+            <label className="block text-sm text-slate-400 mb-2">Address</label>
+            <input
+              type="text"
+              name="address"
+              value={data.personalInfo.address || ''}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
+          {/* City, State */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">City, State</label>
+            <input
+              type="text"
+              name="cityState"
+              value={data.personalInfo.cityState || ''}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
+          </div>
+
+          {/* Country */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Country</label>
+            <input
+              type="text"
+              name="country"
+              value={data.personalInfo.country || ''}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
+          </div>
+          
           {/* Website */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={labelClass}>
-              Website
-            </div>
-            <div className="p-2">
-              <input
-                type="url"
-                name="website"
-                placeholder="Website / LinkedIn"
-                value={data.personalInfo.website}
-                onChange={handlePersonalInfoChange}
-                className={inputClass}
-              />
-            </div>
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">Website</label>
+            <input
+              type="url"
+              name="website"
+              placeholder="Website / LinkedIn"
+              value={data.personalInfo.website}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+            />
           </div>
 
-          {/* Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-            <div className={`${labelClass} items-start pt-4`}>
-              Professional Summary
-            </div>
-            <div className="p-2">
-              <textarea
-                name="summary"
-                placeholder="Professional Summary"
-                value={data.personalInfo.summary}
-                onChange={handlePersonalInfoChange}
-                className={`${inputClass} min-h-[100px]`}
-              />
-            </div>
+          {/* Professional Summary */}
+          <div className="md:col-span-2">
+            <label className="block text-sm text-slate-400 mb-2">Professional Summary</label>
+            <textarea
+              name="summary"
+              placeholder="Professional Summary"
+              value={data.personalInfo.summary}
+              onChange={handlePersonalInfoChange}
+              className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 min-h-[100px]"
+            />
           </div>
+        </div>
       </div>
 
 
@@ -529,7 +516,7 @@ export default function ResumeForm({ data, updateData, onAutoFill, onSave }: Res
           <button
             onClick={onAutoFill}
             className="flex items-center gap-1 text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-md hover:bg-emerald-700 transition-colors shadow-sm"
-            title="Auto-fill skills from your analysis and repositories"
+            title="Auto-fill skills from your analysis"
           >
             <Sparkles size={14} /> AUTO FILL
           </button>
