@@ -123,11 +123,6 @@ export default function ResumeForm({ data, updateData, onAutoFill, onSave }: Res
     }
   };
 
-  const inputClass = "w-full p-2 bg-slate-900 border border-slate-700 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none text-white placeholder-slate-500";
-  const labelClass = "bg-slate-800/50 p-4 font-medium text-slate-300 flex items-center text-sm border-r border-slate-800";
-  const sectionHeaderClass = "bg-slate-800 p-4 border-y border-slate-700 flex justify-between items-center";
-  const sectionTitleClass = "font-bold text-slate-200 uppercase tracking-wide text-sm";
-
   return (
     <div className="bg-[#131825] rounded-xl shadow-sm border border-slate-800 overflow-hidden">
       <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-[#131825]">
@@ -316,258 +311,243 @@ export default function ResumeForm({ data, updateData, onAutoFill, onSave }: Res
 
 
       {/* Experience Section */}
-      <div className={`${sectionHeaderClass} mt-0`}>
-        <h2 className={sectionTitleClass}>Experience</h2>
-        <button
-          onClick={addExperience}
-          className="flex items-center gap-1 text-xs font-medium bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus size={14} /> ADD POSITION
-        </button>
-      </div>
+      <div className="p-6 border-b border-slate-800">
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 mb-1">Experience</h2>
+            <p className="text-sm text-slate-400">List your relevant work experience.</p>
+          </div>
+          <button
+            onClick={addExperience}
+            className="flex items-center gap-1 text-sm font-medium bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-lg hover:bg-emerald-600/30 transition-colors border border-emerald-500/30"
+          >
+            <Plus size={16} /> Add Position
+          </button>
+        </div>
 
-      <div className="divide-y divide-slate-800">
-        {data.experience.map((exp, index) => (
-          <div key={exp.id} className="group">
-            <div className="bg-slate-800/30 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-               <span className="font-semibold text-slate-400 text-xs uppercase tracking-wider">Position #{index + 1}</span>
-               <button
-                  onClick={() => removeExperience(exp.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors p-1"
-                  title="Remove Experience"
-                >
-                  <Trash2 size={14} />
-                </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Company</div>
-              <div className="p-2">
+        <div className="space-y-6">
+          {data.experience.map((exp, index) => (
+            <div key={exp.id} className="relative bg-slate-800/20 p-6 rounded-xl border border-slate-700/50">
+              <button
+                onClick={() => removeExperience(exp.id)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-2 bg-slate-800 rounded-lg"
+                title="Remove Experience"
+              >
+                <Trash2 size={16} />
+              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-slate-400 mb-2">Job Title</label>
                   <input
                     type="text"
-                    placeholder="Company"
-                    value={exp.company}
-                    onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                    className={inputClass}
-                  />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Position</div>
-              <div className="p-2">
-                  <input
-                    type="text"
-                    placeholder="Position"
+                    placeholder="e.g. Software Engineer"
                     value={exp.position}
                     onChange={(e) => updateExperience(exp.id, 'position', e.target.value)}
-                    className={inputClass}
+                    className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
                   />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Duration</div>
-              <div className="p-2 flex gap-2 items-center">
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-2">Company</label>
                   <input
                     type="text"
-                    placeholder="Start Date"
-                    value={exp.startDate}
-                    onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
-                    className={inputClass}
+                    placeholder="Company Name"
+                    value={exp.company}
+                    onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
+                    className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
                   />
-                  <span className="text-slate-500">-</span>
-                  <input
-                    type="text"
-                    placeholder="End Date"
-                    value={exp.endDate}
-                    onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
-                    disabled={exp.current}
-                    className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-                  />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Current Role</div>
-              <div className="p-2 flex items-center">
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-400 mb-2">Start Date</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Jan 2020"
+                      value={exp.startDate}
+                      onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
+                      className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-400 mb-2">End Date</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Present"
+                      value={exp.endDate}
+                      onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
+                      disabled={exp.current}
+                      className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex items-center">
                   <label className="flex items-center gap-2 text-sm cursor-pointer select-none text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={exp.current}
-                        onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)}
-                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 bg-slate-900 border-slate-700"
-                      />
-                      <span>I currently work here</span>
+                    <input
+                      type="checkbox"
+                      checked={exp.current}
+                      onChange={(e) => updateExperience(exp.id, 'current', e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                    />
+                    <span>I currently work here</span>
                   </label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className={`${labelClass} items-start pt-3 pl-8`}>Description</div>
-              <div className="p-2">
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-slate-400 mb-2">Description</label>
                   <textarea
-                    placeholder="Description"
+                    placeholder="Describe your responsibilities and achievements..."
                     value={exp.description}
                     onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
-                    className={`${inputClass} min-h-[80px]`}
+                    className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 min-h-[120px]"
                   />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Education Section */}
-      <div className={sectionHeaderClass}>
-        <h2 className={sectionTitleClass}>Education</h2>
-        <button
-          onClick={addEducation}
-          className="flex items-center gap-1 text-xs font-medium bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus size={14} /> ADD EDUCATION
-        </button>
-      </div>
+      <div className="p-6 border-b border-slate-800">
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 mb-1">Education</h2>
+            <p className="text-sm text-slate-400">Add your educational background.</p>
+          </div>
+          <button
+            onClick={addEducation}
+            className="flex items-center gap-1 text-sm font-medium bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-lg hover:bg-emerald-600/30 transition-colors border border-emerald-500/30"
+          >
+            <Plus size={16} /> Add Education
+          </button>
+        </div>
 
-      <div className="divide-y divide-slate-800">
-        {data.education.map((edu, index) => (
-          <div key={edu.id} className="group">
-             <div className="bg-slate-800/30 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-               <span className="font-semibold text-slate-400 text-xs uppercase tracking-wider">Education #{index + 1}</span>
-               <button
-                  onClick={() => removeEducation(edu.id)}
-                  className="text-slate-500 hover:text-red-400 transition-colors p-1"
-                  title="Remove Education"
-                >
-                  <Trash2 size={14} />
-                </button>
-            </div>
+        <div className="space-y-6">
+          {data.education.map((edu, index) => (
+            <div key={edu.id} className="relative bg-slate-800/20 p-6 rounded-xl border border-slate-700/50">
+              <button
+                onClick={() => removeEducation(edu.id)}
+                className="absolute top-4 right-4 text-slate-500 hover:text-red-400 transition-colors p-2 bg-slate-800 rounded-lg"
+                title="Remove Education"
+              >
+                <Trash2 size={16} />
+              </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>School</div>
-              <div className="p-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-slate-400 mb-2">School / University</label>
                   <input
                     type="text"
-                    placeholder="School / University"
+                    placeholder="e.g. University of California"
                     value={edu.school}
                     onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
-                    className={inputClass}
+                    className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
                   />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Degree</div>
-              <div className="p-2">
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-slate-400 mb-2">Degree</label>
                   <input
                     type="text"
-                    placeholder="Degree"
+                    placeholder="e.g. Bachelor of Science in Computer Science"
                     value={edu.degree}
                     onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                    className={inputClass}
+                    className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
                   />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] border-b border-slate-800 last:border-b-0">
-              <div className={`${labelClass} pl-8`}>Duration</div>
-              <div className="p-2 flex gap-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="Start Date"
-                    value={edu.startDate}
-                    onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
-                    className={inputClass}
-                  />
-                  <span className="text-slate-500">-</span>
-                  <input
-                    type="text"
-                    placeholder="End Date"
-                    value={edu.endDate}
-                    onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
-                    disabled={edu.current}
-                    className={`${inputClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-                  />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className={`${labelClass} pl-8`}>Current</div>
-              <div className="p-2 flex items-center">
+                </div>
+                <div className="flex gap-4 md:col-span-2">
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-400 mb-2">Start Date</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sep 2018"
+                      value={edu.startDate}
+                      onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
+                      className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-slate-400 mb-2">End Date</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. May 2022"
+                      value={edu.endDate}
+                      onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
+                      disabled={edu.current}
+                      className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 flex items-center">
                   <label className="flex items-center gap-2 text-sm cursor-pointer select-none text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={edu.current}
-                        onChange={(e) => updateEducation(edu.id, 'current', e.target.checked)}
-                        className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 bg-slate-900 border-slate-700"
-                      />
-                      <span>I currently study here</span>
+                    <input
+                      type="checkbox"
+                      checked={edu.current}
+                      onChange={(e) => updateEducation(edu.id, 'current', e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 bg-slate-900 border-slate-700"
+                    />
+                    <span>I currently study here</span>
                   </label>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Skills Section */}
-      <div className={sectionHeaderClass}>
-        <h2 className={sectionTitleClass}>Skills</h2>
-        {onAutoFill && (
-          <button
-            onClick={onAutoFill}
-            className="flex items-center gap-1 text-xs font-medium bg-emerald-600 text-white px-3 py-1.5 rounded-md hover:bg-emerald-700 transition-colors shadow-sm"
-            title="Auto-fill skills from your analysis"
-          >
-            <Sparkles size={14} /> AUTO FILL
-          </button>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-        <div className={`${labelClass} items-start pt-4`}>
-          Skills List
+      <div className="p-6 border-b border-slate-800">
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 mb-1">Skills</h2>
+            <p className="text-sm text-slate-400">Add your top skills.</p>
+          </div>
+          {onAutoFill && (
+            <button
+              onClick={onAutoFill}
+              className="flex items-center gap-1 text-sm font-medium bg-emerald-600/20 text-emerald-400 px-4 py-2 rounded-lg hover:bg-emerald-600/30 transition-colors border border-emerald-500/30"
+              title="Auto-fill skills from your analysis"
+            >
+              <Sparkles size={16} /> Auto Fill
+            </button>
+          )}
         </div>
-        <div className="p-2">
+        <div>
           <textarea
             placeholder="Enter skills separated by commas (e.g. JavaScript, React, Project Management)"
             value={data.skills.join(', ')}
             onChange={handleSkillsChange}
-            className={`${inputClass} min-h-[100px]`}
+            className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 min-h-[100px]"
           />
         </div>
       </div>
 
       {/* Languages Section */}
-      <div className={sectionHeaderClass}>
-        <h2 className={sectionTitleClass}>Languages</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-        <div className={`${labelClass} items-start pt-4`}>
-          Languages List
+      <div className="p-6 border-b border-slate-800">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-slate-100 mb-1">Languages</h2>
+          <p className="text-sm text-slate-400">List languages you speak.</p>
         </div>
-        <div className="p-2">
+        <div>
           <textarea
             placeholder="Enter languages separated by commas (e.g. English, Spanish, French)"
             value={data.languages ? data.languages.join(', ') : ''}
             onChange={(e) => updateData({ ...data, languages: e.target.value.split(',').map(s => s.trim()) })}
-            className={`${inputClass} min-h-[80px]`}
+            className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 min-h-[80px]"
           />
         </div>
       </div>
 
       {/* Certifications Section */}
-      <div className={sectionHeaderClass}>
-        <h2 className={sectionTitleClass}>Certifications</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-        <div className={`${labelClass} items-start pt-4`}>
-          Certifications List
+      <div className="p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-slate-100 mb-1">Certifications</h2>
+          <p className="text-sm text-slate-400">Add relevant certifications.</p>
         </div>
-        <div className="p-2">
+        <div>
           <textarea
             placeholder="Enter certifications separated by commas"
             value={data.certifications ? data.certifications.join(', ') : ''}
             onChange={(e) => updateData({ ...data, certifications: e.target.value.split(',').map(s => s.trim()) })}
-            className={`${inputClass} min-h-[80px]`}
+            className="w-full p-3 bg-slate-800/50 border-0 rounded-md text-white focus:ring-2 focus:ring-emerald-500 outline-none placeholder-slate-500 min-h-[80px]"
           />
         </div>
       </div>

@@ -764,7 +764,7 @@ function App() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Left Column: Controls (Mobile Tabs + Desktop Sidebar) */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-7 space-y-6">
                 
                 {/* Mobile Tab Switcher */}
                 <div className="lg:hidden flex bg-[#131825] p-1 rounded-xl shadow-sm border border-slate-800 mb-6">
@@ -806,7 +806,7 @@ function App() {
               </div>
 
               {/* Right Column: Preview */}
-              <div className={`lg:col-span-7 ${resumeActiveTab === 'preview' ? 'block' : 'hidden'} lg:block`}>
+              <div className={`lg:col-span-5 ${resumeActiveTab === 'preview' ? 'block' : 'hidden'} lg:block`}>
                 <div className="sticky top-24">
                   <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-slate-800">
                     <div className="bg-[#0A0A0B] px-4 py-3 border-b border-slate-800 flex justify-between items-center">
