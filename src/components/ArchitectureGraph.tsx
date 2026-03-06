@@ -1,22 +1,23 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import dagre from 'dagre';
 
-interface Node extends d3.SimulationNodeDatum {
+interface Node {
   id: string;
   group: number;
   description: string;
 }
 
-interface Link extends d3.SimulationLinkDatum<Node> {
-  source: string | Node;
-  target: string | Node;
+interface Link {
+  source: string;
+  target: string;
   label: string;
 }
 
 interface ArchitectureGraphProps {
   data: {
-    nodes: { id: string; group: number; description: string }[];
-    links: { source: string; target: string; label: string }[];
+    nodes: Node[];
+    links: Link[];
   };
 }
 
@@ -50,15 +51,30 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       
     svg.call(zoom);
 
-    // Deep copy data to avoid mutating props
-    const nodes: Node[] = data.nodes.map(d => ({ ...d }));
-    const links: Link[] = data.links.map(d => ({ ...d }));
+    // Setup Dagre graph
+    const gDagre = new dagre.graphlib.Graph();
+    gDagre.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 100, marginx: 40, marginy: 40 });
+    gDagre.setDefaultEdgeLabel(() => ({}));
 
-    const simulation = d3.forceSimulation<Node>(nodes)
-      .force("link", d3.forceLink<Node, Link>(links).id(d => d.id).distance(200))
-      .force("charge", d3.forceManyBody().strength(-800))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(80));
+    const nodeWidth = 160;
+    const nodeHeight = 60;
+
+    data.nodes.forEach(node => {
+      gDagre.setNode(node.id, { 
+        label: node.id, 
+        width: nodeWidth, 
+        height: nodeHeight, 
+        description: node.description,
+        group: node.group
+      });
+    });
+
+    data.links.forEach(link => {
+      gDagre.setEdge(link.source, link.target, { label: link.label });
+    });
+
+    // Compute layout
+    dagre.layout(gDagre);
 
     // Define arrow markers for links
     svg.append("defs").selectAll("marker")
@@ -66,7 +82,7 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .join("marker")
       .attr("id", String)
       .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 75) // Adjusted for wider nodes
+      .attr("refX", 8) // Adjusted for edge points
       .attr("refY", 0)
       .attr("markerWidth", 6)
       .attr("markerHeight", 6)
@@ -75,35 +91,64 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .attr("fill", "#3b82f6") // Blue color matching the image
       .attr("d", "M0,-5L10,0L0,5");
 
+    // Draw edges
+    const edges = gDagre.edges().map(e => {
+      const edge = gDagre.edge(e);
+      return {
+        ...edge,
+        source: e.v,
+        target: e.w
+      };
+    });
+
+    const line = d3.line<{x: number, y: number}>()
+      .x(d => d.x)
+      .y(d => d.y)
+      .curve(d3.curveBasis);
+
     const link = g.append("g")
-      .attr("stroke", "#3b82f6") // Blue color matching the image
+      .attr("stroke", "#3b82f6")
       .attr("stroke-opacity", 0.6)
       .selectAll("path")
-      .data(links)
+      .data(edges)
       .join("path")
       .attr("fill", "none")
       .attr("stroke-width", 2)
-      .attr("marker-end", "url(#end)");
+      .attr("marker-end", "url(#end)")
+      .attr("d", d => line(d.points));
 
     const linkLabels = g.append("g")
       .selectAll("text")
-      .data(links)
+      .data(edges)
       .join("text")
       .attr("font-size", "10px")
       .attr("fill", "#64748b")
       .attr("text-anchor", "middle")
-      .attr("dy", -5)
+      .attr("x", d => {
+        // Find the middle point of the edge for the label
+        const midPoint = d.points[Math.floor(d.points.length / 2)];
+        return midPoint ? midPoint.x : 0;
+      })
+      .attr("y", d => {
+        const midPoint = d.points[Math.floor(d.points.length / 2)];
+        return midPoint ? midPoint.y - 5 : 0;
+      })
       .text(d => d.label);
+
+    // Draw nodes
+    const nodes = gDagre.nodes().map(v => {
+      const node = gDagre.node(v);
+      return {
+        id: v,
+        ...node
+      };
+    });
 
     const node = g.append("g")
       .selectAll("g")
       .data(nodes)
       .join("g")
-      .call(drag(simulation) as any);
-
-    // Add foreignObject for HTML content (rectangular cards)
-    const nodeWidth = 140;
-    const nodeHeight = 60;
+      .attr("transform", d => `translate(${d.x},${d.y})`);
 
     node.append("foreignObject")
       .attr("width", nodeWidth)
@@ -111,7 +156,7 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       .attr("x", -nodeWidth / 2)
       .attr("y", -nodeHeight / 2)
       .append("xhtml:div")
-      .attr("class", "w-full h-full flex flex-col items-center justify-center bg-white border-2 border-blue-400 rounded-xl shadow-sm p-2 cursor-pointer transition-colors hover:bg-blue-50")
+      .attr("class", "w-full h-full flex flex-col items-center justify-center bg-white border-2 border-blue-400 rounded-xl shadow-sm p-2 transition-colors hover:bg-blue-50")
       .html(d => `
         <div class="text-xs font-semibold text-slate-700 text-center break-words w-full line-clamp-2">${d.id}</div>
       `);
@@ -141,7 +186,6 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       d3.select(event.currentTarget).select("div").classed("border-blue-600 shadow-md", false);
     })
     .on("mousemove", (event) => {
-      // Adjust tooltip position to stay within bounds if possible
       const tooltipEl = tooltip.node() as HTMLElement;
       const containerEl = containerRef.current;
       
@@ -165,60 +209,30 @@ const ArchitectureGraph: React.FC<ArchitectureGraphProps> = ({ data }) => {
       }
     });
 
-    simulation.on("tick", () => {
-      // Use orthogonal-like paths for links
-      link.attr("d", (d: any) => {
-        const sourceX = d.source.x;
-        const sourceY = d.source.y;
-        const targetX = d.target.x;
-        const targetY = d.target.y;
-        
-        // Simple straight line for now, orthogonal is complex with force layout
-        return `M${sourceX},${sourceY} L${targetX},${targetY}`;
-      });
-
-      linkLabels
-        .attr("x", d => ((d.source as Node).x! + (d.target as Node).x!) / 2)
-        .attr("y", d => ((d.source as Node).y! + (d.target as Node).y!) / 2);
-
-      node.attr("transform", d => `translate(${d.x},${d.y})`);
-    });
-
-    function drag(simulation: d3.Simulation<Node, undefined>) {
-      function dragstarted(event: any) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        event.subject.fx = event.subject.x;
-        event.subject.fy = event.subject.y;
-      }
-      
-      function dragged(event: any) {
-        event.subject.fx = event.x;
-        event.subject.fy = event.y;
-      }
-      
-      function dragended(event: any) {
-        if (!event.active) simulation.alphaTarget(0);
-        event.subject.fx = null;
-        event.subject.fy = null;
-      }
-      
-      return d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended);
-    }
+    // Center the graph
+    const graphWidth = gDagre.graph().width || 0;
+    const graphHeight = gDagre.graph().height || 0;
+    const initialScale = Math.min(
+      (width - 40) / graphWidth,
+      (height - 40) / graphHeight,
+      1 // Don't scale up more than 1x
+    );
+    
+    const xCenterOffset = (width - graphWidth * initialScale) / 2;
+    const yCenterOffset = (height - graphHeight * initialScale) / 2;
+    
+    svg.call(zoom.transform as any, d3.zoomIdentity.translate(xCenterOffset, yCenterOffset).scale(initialScale));
 
     return () => {
-      simulation.stop();
       tooltip.remove();
     };
   }, [data]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-slate-50 rounded-2xl border border-slate-200">
-      <svg ref={svgRef} className="w-full h-full cursor-move" />
+      <svg ref={svgRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
       <div className="absolute bottom-4 left-4 text-xs text-slate-500 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
-        Scroll to zoom, drag to pan and move nodes. Hover for details.
+        Scroll to zoom, drag to pan. Hover for details.
       </div>
     </div>
   );

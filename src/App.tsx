@@ -937,9 +937,14 @@ function App() {
                   </h3>
                   <div className="h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={growthData.map(d => ({ ...d, displayDate: new Date(d.date).toLocaleDateString() }))}>
+                      <LineChart data={growthData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey="displayDate" stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#94a3b8" 
+                          tick={{ fill: '#94a3b8' }} 
+                          tickFormatter={(val) => new Date(val).toLocaleDateString()}
+                        />
                         <YAxis domain={[0, 100]} stroke="#94a3b8" tick={{ fill: '#94a3b8' }} />
                         <Tooltip 
                           content={({ active, payload, label }) => {
@@ -948,7 +953,7 @@ function App() {
                               const projectName = data.source ? data.source.split('/').pop() : 'Unknown Project';
                               return (
                                 <div className="bg-slate-800 border border-slate-700 p-3 rounded-lg shadow-xl">
-                                  <p className="text-slate-400 text-xs mb-1">{label}</p>
+                                  <p className="text-slate-400 text-xs mb-1">{new Date(label).toLocaleDateString()}</p>
                                   <p className="text-white font-bold mb-1">{projectName}</p>
                                   <p className="text-emerald-400 font-medium">Score: {data.score}</p>
                                 </div>
