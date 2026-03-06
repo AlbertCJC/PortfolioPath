@@ -631,6 +631,20 @@ function App() {
         
         const areasForGrowth = sortedSkills.filter(s => !topStrengths.includes(s));
 
+        // Generate dynamic summary
+        const topSkill = sortedSkills[0];
+        const lowestSkill = sortedSkills[sortedSkills.length - 1];
+        const avgScore = Math.round(sortedSkills.reduce((acc, curr) => acc + curr.A, 0) / sortedSkills.length);
+        
+        let feedbackText = "";
+        if (avgScore >= 80) {
+          feedbackText = `Outstanding overall proficiency! Your ${topSkill.subject} skills are exceptional. You have a highly balanced and strong technical profile.`;
+        } else if (avgScore >= 60) {
+          feedbackText = `Solid technical foundation. You show strong capability in ${topSkill.subject}, while ${lowestSkill.subject} presents a great opportunity for future growth.`;
+        } else {
+          feedbackText = `You're building a good foundation. Focusing on ${lowestSkill.subject} and leveraging your current knowledge in ${topSkill.subject} will accelerate your growth.`;
+        }
+
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-6xl mx-auto w-full space-y-8">
             <div className="mb-8">
@@ -640,26 +654,39 @@ function App() {
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Radar Chart Card */}
-              <div className="lg:col-span-2 bg-[#131825] rounded-2xl p-6 border border-slate-800/50 min-h-[400px] w-full min-w-0">
-                <ResponsiveContainer width="100%" height={400}>
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
-                    <PolarGrid stroke="#334155" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
-                      itemStyle={{ color: '#10b981' }}
-                    />
-                    <Radar
-                      name="Skills"
-                      dataKey="A"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      fill="#10b981"
-                      fillOpacity={0.3}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
+              <div className="lg:col-span-2 bg-[#131825] rounded-2xl p-6 border border-slate-800/50 min-h-[400px] w-full min-w-0 flex flex-col">
+                <div className="flex-1 min-h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                      <PolarGrid stroke="#334155" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }}
+                        itemStyle={{ color: '#10b981' }}
+                      />
+                      <Radar
+                        name="Skills"
+                        dataKey="A"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        fill="#10b981"
+                        fillOpacity={0.3}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Feedback and Summary */}
+                <div className="mt-6 pt-6 border-t border-slate-800/50">
+                  <h3 className="text-white font-medium mb-2 flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-emerald-400" />
+                    Analysis Summary
+                  </h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">
+                    {feedbackText}
+                  </p>
+                </div>
               </div>
 
               {/* Strengths & Growth Cards */}
@@ -905,15 +932,17 @@ function App() {
         );
       case 'architecture':
         return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full h-full flex flex-col">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
             <div className="mb-8 shrink-0 w-full">
               <h1 className="text-3xl font-bold text-white tracking-tight">Architecture Graph</h1>
               <p className="text-slate-400">Visual representation of your project's components and their relationships.</p>
             </div>
             
-            <div className="w-full flex-1 min-h-0">
+            <div className="w-full flex-1 min-h-0 relative">
               {reportData.architecture_graph ? (
-                <ArchitectureGraph data={reportData.architecture_graph} />
+                <div className="absolute inset-0">
+                  <ArchitectureGraph data={reportData.architecture_graph} />
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full p-16 border border-dashed border-slate-700 rounded-2xl bg-slate-900/30 text-center">
                   <Cpu className="w-16 h-16 text-slate-600 mb-4" />
@@ -1148,7 +1177,7 @@ function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative">
+      <main className="flex-1 overflow-y-auto relative flex flex-col">
         {/* Background Gradients */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
@@ -1157,7 +1186,7 @@ function App() {
 
         {/* Analyze New Code Button removed */}
 
-        <div className="relative z-10 p-8 md:p-12 min-h-full flex flex-col pt-20">
+        <div className="relative z-10 p-8 md:p-12 flex-1 flex flex-col pt-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab + (isAnalyzing ? '-loading' : '')}
