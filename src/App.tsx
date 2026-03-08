@@ -289,7 +289,8 @@ function App() {
         const newGrowthEntry = {
           date: new Date().toISOString(),
           score: result.code_review.score,
-          source: source
+          source: source,
+          report: result
         };
         const newGrowthData = [...growthData, newGrowthEntry];
         
@@ -1078,15 +1079,28 @@ function App() {
                   </h3>
                   <div className="space-y-4">
                     {growthData.slice().reverse().map((entry: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                      <button 
+                        key={index} 
+                        onClick={() => {
+                          if (entry.report) {
+                            setReportData(entry.report);
+                            setAnalyzedRepoName(entry.source);
+                            setActiveTab('analyzer');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          } else {
+                            showToast('error', 'Report Unavailable', 'Detailed report data is not available for this historical entry.');
+                          }
+                        }}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-emerald-500/50 transition-all group text-left"
+                      >
                         <div>
-                          <p className="font-medium text-white">{entry.source}</p>
+                          <p className="font-medium text-white group-hover:text-emerald-400 transition-colors">{entry.source}</p>
                           <p className="text-sm text-slate-400">{new Date(entry.date).toLocaleDateString()}</p>
                         </div>
                         <div className={cn("px-4 py-2 rounded-lg font-bold text-lg", getScoreBg(entry.score), getScoreColor(entry.score))}>
                           {entry.score}/100
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
