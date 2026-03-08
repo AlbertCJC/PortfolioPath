@@ -1162,14 +1162,14 @@ function App() {
       {/* Hero Section */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center max-w-4xl mx-auto w-full mt-[-8vh]">
         <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight mb-6 leading-tight">
-          Turn Your Code Into<br />
+          Master Your Codebase,<br />
           <span className="text-emerald-400">
-            Career Gold
+            Build Your Future
           </span>
         </h1>
         
         <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl leading-relaxed">
-          Upload your project code. Our AI auditor evaluates quality, performance, and generates resume-ready bullet points instantly.
+          Comprehensive AI analysis for your GitHub repositories. Get actionable code reviews, instant resume enhancements, and a tailored roadmap for your developer journey.
         </p>
 
         <div className="w-full max-w-2xl flex flex-col items-center gap-6">
